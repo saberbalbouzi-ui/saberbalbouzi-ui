@@ -1,0 +1,57 @@
+// ============================================================
+// دليل الرقاة - Types & Interfaces
+// ============================================================
+
+export interface Raqi {
+  id: string;
+  slug: string;
+  full_name: string;
+  speciality: string | null;
+  phone: string | null;
+  whatsapp: string | null;
+  wilaya: string;
+  address: string | null;
+  experience_years: number;
+  bio: string | null;
+  verified_badge: boolean;
+  status: 'pending' | 'approved' | 'rejected';
+  created_at: string;
+  updated_at: string;
+}
+
+export interface RaqiInsert {
+  slug: string;
+  full_name: string;
+  speciality?: string;
+  phone?: string;
+  whatsapp?: string;
+  wilaya: string;
+  address?: string;
+  experience_years?: number;
+  bio?: string;
+  status?: 'pending';
+}
+
+export interface Review {
+  id: string;
+  raqi_id: string;
+  rating: number;
+  comment: string | null;
+  reviewer_name: string;
+  created_at: string;
+}
+
+export interface ReviewInsert {
+  raqi_id: string;
+  rating: number;
+  comment?: string;
+  reviewer_name: string;
+}
+
+export interface Wilaya {
+  id: number;
+  code: string;
+  name_ar: string;
+}
+
+export type FilterStatus = 'all' | 'pending' | 'approved' | 'rejected';
