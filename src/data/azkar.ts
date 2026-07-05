@@ -5,7 +5,7 @@
 
 
 export interface Zekr {
-  title : string;
+  title? : string;
   text: string;
   count: number;
   fadl?: string;
