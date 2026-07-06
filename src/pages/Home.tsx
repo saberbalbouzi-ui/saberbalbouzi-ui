@@ -122,9 +122,9 @@ function AzkarSection() {
     </h4>
   )}
 
-  <p className="text-gray-800 text-base md:text-lg leading-relaxed font-medium">
-    {zekr.text}
-  </p>
+  <p className="text-gray-800 text-base md:text-lg leading-relaxed font-medium whitespace-pre-line">
+  {zekr.text}
+</p>
 
   {zekr.fadl && (
     <p className="text-gray-500 text-sm mt-2 leading-relaxed border-r-2 border-[#d6b14a] pr-3">
