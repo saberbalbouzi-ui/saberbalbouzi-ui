@@ -1,38 +1,65 @@
-// ============================================================
-// دليل الرقاة - Admin Dashboard (Secret Link)
-// ============================================================
 import { useState, useEffect } from 'react';
-import { useSearchParams } from 'react-router-dom';
 import { Card } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
-import { getAllRaqis, updateRaqiStatus, toggleVerified, deleteRaqi, mockWilayas } from '@/lib/supabase';
+import {
+  getAllRaqis,
+  updateRaqiStatus,
+  toggleVerified,
+  deleteRaqi,
+  mockWilayas,
+  supabase,
+} from '@/lib/supabase';
 import type { Raqi } from '@/types';
 import {
-  Shield, Lock, LogOut, CheckCircle, XCircle, Award, Star,
-  Users, Clock, CheckCheck, Trash2, MapPin, Loader2, Search
+  Shield, Lock, LogOut, XCircle, Award,
+  Users, Clock, CheckCheck, Trash2, MapPin, Loader2, Search, Mail
 } from 'lucide-react';
 
-const ADMIN_KEY = 'raqi-admin-2024';
-
 export default function Admin() {
-  const [searchParams] = useSearchParams();
   const [isLoggedIn, setIsLoggedIn] = useState(false);
+  const [sessionLoading, setSessionLoading] = useState(true);
+  const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [loginError, setLoginError] = useState('');
   const [raqis, setRaqis] = useState<Raqi[]>([]);
   const [loading, setLoading] = useState(false);
-  const [statusFilter, setStatusFilter] = useState<string>('all');
+  const [statusFilter, setStatusFilter] = useState('all');
   const [searchQuery, setSearchQuery] = useState('');
 
-  // Check for key in URL
   useEffect(() => {
-    const key = searchParams.get('key');
-    if (key === ADMIN_KEY) {
-      setIsLoggedIn(true);
-      loadRaqis();
-    }
-  }, [searchParams]);
+    const checkSession = async () => {
+      const {
+        data: { session },
+      } = await supabase.auth.getSession();
+
+      setIsLoggedIn(!!session);
+
+      if (session) {
+        await loadRaqis();
+      }
+
+      setSessionLoading(false);
+    };
+
+    checkSession();
+
+    const {
+      data: { subscription },
+    } = supabase.auth.onAuthStateChange(async (_event, session) => {
+      setIsLoggedIn(!!session);
+
+      if (session) {
+        await loadRaqis();
+      } else {
+        setRaqis([]);
+      }
+
+      setSessionLoading(false);
+    });
+
+    return () => subscription.unsubscribe();
+  }, []);
 
   const loadRaqis = async () => {
     setLoading(true);
@@ -40,49 +67,74 @@ export default function Admin() {
       const data = await getAllRaqis(statusFilter === 'all' ? undefined : statusFilter);
       setRaqis(data);
     } catch (err) {
-      console.error('Error:', err);
+      console.error('Error loading raqis:', err);
     } finally {
       setLoading(false);
     }
   };
 
   useEffect(() => {
-    if (isLoggedIn) loadRaqis();
+    if (isLoggedIn) {
+      loadRaqis();
+    }
   }, [statusFilter, isLoggedIn]);
 
-  const handleLogin = () => {
-    if (password === ADMIN_KEY) {
-      setIsLoggedIn(true);
-      loadRaqis();
-      setLoginError('');
-    } else {
-      setLoginError('كلمة المرور غير صحيحة');
+  const handleLogin = async () => {
+    setLoginError('');
+
+    const { error } = await supabase.auth.signInWithPassword({
+      email,
+      password,
+    });
+
+    if (error) {
+      setLoginError(error.message || 'فشل تسجيل الدخول');
+      return;
     }
+
+    setEmail('');
+    setPassword('');
+  };
+
+  const handleLogout = async () => {
+    await supabase.auth.signOut();
+    setIsLoggedIn(false);
+    setRaqis([]);
   };
 
   const handleStatus = async (id: string, status: 'approved' | 'rejected') => {
-    await updateRaqiStatus(id, status);
-    await loadRaqis();
+    try {
+      await updateRaqiStatus(id, status);
+      await loadRaqis();
+    } catch (error: any) {
+      console.error('Status error:', error);
+      alert(error?.message || 'فشل تحديث الحالة');
+    }
   };
 
   const handleToggleVerified = async (id: string, current: boolean) => {
-    await toggleVerified(id, !current);
-    await loadRaqis();
+    try {
+      await toggleVerified(id, !current);
+      await loadRaqis();
+    } catch (error: any) {
+      console.error('Verify error:', error);
+      alert(error?.message || 'فشل تحديث التوثيق');
+    }
   };
 
   const handleDelete = async (id: string) => {
-  const confirmed = window.confirm('هل أنت متأكد من حذف هذا الراقي؟');
-  if (!confirmed) return;
+    const confirmed = window.confirm('هل أنت متأكد من حذف هذا الراقي؟');
+    if (!confirmed) return;
 
-  try {
-    await deleteRaqi(id);
-    await loadRaqis();
-    alert('تم حذف الراقي بنجاح');
-  } catch (error: any) {
-    console.error('Delete error:', error);
-    alert(error?.message || 'حدث خطأ أثناء الحذف');
-  }
-};
+    try {
+      await deleteRaqi(id);
+      await loadRaqis();
+      alert('تم حذف الراقي بنجاح');
+    } catch (error: any) {
+      console.error('Delete error:', error);
+      alert(error?.message || 'فشل حذف الراقي');
+    }
+  };
 
   const getWilayaName = (code: string) => {
     return mockWilayas.find(w => w.code === code)?.name_ar || code;
@@ -91,7 +143,12 @@ export default function Admin() {
   const filtered = raqis.filter(r => {
     if (!searchQuery.trim()) return true;
     const q = searchQuery.trim().toLowerCase();
-    return r.full_name.toLowerCase().includes(q);
+
+    return (
+      r.full_name?.toLowerCase().includes(q) ||
+      r.speciality?.toLowerCase().includes(q) ||
+      r.wilaya?.toLowerCase().includes(q)
+    );
   });
 
   const stats = {
@@ -102,91 +159,120 @@ export default function Admin() {
     verified: raqis.filter(r => r.verified_badge).length,
   };
 
-  // Login Screen
+  if (sessionLoading) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-gray-50">
+        <div className="flex items-center gap-3 text-[#1f6f50] font-bold">
+          <Loader2 className="w-6 h-6 animate-spin" />
+          جاري التحقق...
+        </div>
+      </div>
+    );
+  }
+
   if (!isLoggedIn) {
     return (
       <div className="min-h-screen bg-gradient-to-br from-[#0b5a35] to-[#10693e] flex items-center justify-center px-4">
-        <Card className="max-w-sm w-full p-8 rounded-3xl shadow-2xl bg-white">
+        <Card className="w-full max-w-md rounded-3xl shadow-2xl p-8 border-0">
           <div className="text-center mb-6">
-            <div className="w-16 h-16 bg-[#f0fdf4] rounded-full flex items-center justify-center mx-auto mb-4">
-              <Lock className="w-8 h-8 text-[#1f6f50]" />
+            <div className="w-16 h-16 rounded-2xl bg-[#1f6f50]/10 flex items-center justify-center mx-auto mb-4">
+              <Shield className="w-8 h-8 text-[#1f6f50]" />
             </div>
-            <h1 className="text-xl font-extrabold text-gray-900 mb-1">لوحة الإدارة</h1>
-            <p className="text-gray-500 text-sm">أدخل كلمة المرور للوصول</p>
+            <h1 className="text-2xl font-extrabold text-gray-900">لوحة الإدارة</h1>
+            <p className="text-gray-500 mt-2">سجّل الدخول بحساب المدير</p>
           </div>
 
           <div className="space-y-4">
-            <Input
-              type="password"
-              value={password}
-              onChange={e => { setPassword(e.target.value); setLoginError(''); }}
-              onKeyDown={e => e.key === 'Enter' && handleLogin()}
-              placeholder="كلمة المرور"
-              className="h-12 rounded-xl text-center"
-            />
-            {loginError && <p className="text-red-500 text-sm text-center">{loginError}</p>}
+            <div className="relative">
+              <Mail className="w-5 h-5 text-gray-400 absolute right-3 top-1/2 -translate-y-1/2" />
+              <Input
+                type="email"
+                value={email}
+                onChange={e => {
+                  setEmail(e.target.value);
+                  setLoginError('');
+                }}
+                placeholder="البريد الإلكتروني"
+                className="h-12 pr-10 rounded-xl"
+              />
+            </div>
+
+            <div className="relative">
+              <Lock className="w-5 h-5 text-gray-400 absolute right-3 top-1/2 -translate-y-1/2" />
+              <Input
+                type="password"
+                value={password}
+                onChange={e => {
+                  setPassword(e.target.value);
+                  setLoginError('');
+                }}
+                onKeyDown={e => e.key === 'Enter' && handleLogin()}
+                placeholder="كلمة المرور"
+                className="h-12 pr-10 rounded-xl"
+              />
+            </div>
+
+            {loginError && (
+              <p className="text-red-600 text-sm font-semibold text-center">{loginError}</p>
+            )}
+
             <Button
               onClick={handleLogin}
-              className="w-full h-12 bg-[#1f6f50] hover:bg-[#18593f] text-white font-bold rounded-xl"
+              className="w-full h-12 rounded-xl bg-[#1f6f50] hover:bg-[#18593f] text-white font-bold"
             >
               دخول
             </Button>
           </div>
-
-          <p className="text-center text-gray-400 text-xs mt-6">
-            للوصول استخدم: ?key=raqi-admin-2024
-          </p>
         </Card>
       </div>
     );
   }
 
-  // Admin Dashboard
   return (
     <div className="min-h-screen bg-gray-50">
-      {/* Header */}
-      <div className="bg-gradient-to-br from-[#0b5a35] to-[#10693e] px-4 py-6">
-        <div className="max-w-6xl mx-auto">
-          <div className="flex items-center justify-between mb-6">
-            <div className="flex items-center gap-3">
-              <Shield className="w-8 h-8 text-[#f1d27b]" />
-              <h1 className="text-xl md:text-2xl font-extrabold text-white">لوحة إدارة دليل الرقاة</h1>
-            </div>
-            <Button
-              variant="ghost"
-              onClick={() => setIsLoggedIn(false)}
-              className="text-white hover:bg-white/10"
-            >
-              <LogOut className="w-4 h-4 mr-2" />
-              خروج
-            </Button>
+      <div className="bg-gradient-to-br from-[#0b5a35] to-[#10693e] py-8 px-4">
+        <div className="max-w-7xl mx-auto flex items-center justify-between gap-4">
+          <div>
+            <h1 className="text-3xl font-extrabold text-white">لوحة إدارة دليل الرقاة</h1>
+            <p className="text-white/80 mt-2">إدارة الطلبات، التوثيق، والحذف</p>
           </div>
 
-          {/* Stats */}
-          <div className="grid grid-cols-2 md:grid-cols-5 gap-3">
-            {[
-              { label: 'الكل', value: stats.total, icon: Users, color: 'bg-white/10' },
-              { label: 'معلق', value: stats.pending, icon: Clock, color: 'bg-amber-500/20' },
-              { label: 'معتمد', value: stats.approved, icon: CheckCheck, color: 'bg-green-500/20' },
-              { label: 'مرفوض', value: stats.rejected, icon: XCircle, color: 'bg-red-500/20' },
-              { label: 'موثق', value: stats.verified, icon: Award, color: 'bg-blue-500/20' },
-            ].map((s, i) => (
-              <div key={i} className={`${s.color} backdrop-blur-sm rounded-xl p-3 text-center`}>
-                <s.icon className="w-5 h-5 text-white/80 mx-auto mb-1" />
-                <p className="text-2xl font-black text-white">{s.value}</p>
-                <p className="text-white/70 text-xs font-semibold">{s.label}</p>
-              </div>
-            ))}
-          </div>
+          <Button
+            onClick={handleLogout}
+            className="text-white bg-white/10 hover:bg-white/20 rounded-xl"
+          >
+            <LogOut className="w-4 h-4 ml-2" />
+            خروج
+          </Button>
         </div>
       </div>
 
-      <div className="max-w-6xl mx-auto px-4 py-6">
-        {/* Filters */}
-        <Card className="p-4 rounded-2xl shadow-sm mb-6">
-          <div className="flex flex-col md:flex-row gap-4 items-stretch md:items-center">
-            {/* Status Filter */}
-            <div className="flex gap-2 flex-wrap">
+      <div className="max-w-7xl mx-auto px-4 py-8">
+        <div className="grid grid-cols-2 md:grid-cols-5 gap-4 mb-8">
+          {[
+            { label: 'الكل', value: stats.total, icon: Users, color: 'bg-slate-100 text-slate-700' },
+            { label: 'معلق', value: stats.pending, icon: Clock, color: 'bg-amber-100 text-amber-700' },
+            { label: 'معتمد', value: stats.approved, icon: CheckCheck, color: 'bg-green-100 text-green-700' },
+            { label: 'مرفوض', value: stats.rejected, icon: XCircle, color: 'bg-red-100 text-red-700' },
+            { label: 'موثق', value: stats.verified, icon: Award, color: 'bg-blue-100 text-blue-700' },
+          ].map((s, i) => (
+            <Card key={i} className="p-4 rounded-2xl border-0 shadow-sm">
+              <div className="flex items-center justify-between">
+                <div>
+                  <p className="text-2xl font-extrabold text-gray-900">{s.value}</p>
+                  <p className="text-sm text-gray-500 font-semibold mt-1">{s.label}</p>
+                </div>
+                <div className={`w-11 h-11 rounded-xl flex items-center justify-center ${s.color}`}>
+                  <s.icon className="w-5 h-5" />
+                </div>
+              </div>
+            </Card>
+          ))}
+        </div>
+
+        <Card className="p-5 rounded-2xl shadow-sm border-0 mb-6">
+          <div className="flex flex-col lg:flex-row gap-4 lg:items-center lg:justify-between">
+            <div className="flex flex-wrap gap-2">
               {[
                 { value: 'all', label: 'الكل' },
                 { value: 'pending', label: 'معلق' },
@@ -196,126 +282,127 @@ export default function Admin() {
                 <button
                   key={s.value}
                   onClick={() => setStatusFilter(s.value)}
-                  className={`px-4 py-2 rounded-lg text-sm font-bold transition-all
-                    ${statusFilter === s.value
+                  className={`px-4 py-2 rounded-lg text-sm font-bold transition-all ${
+                    statusFilter === s.value
                       ? 'bg-[#1f6f50] text-white shadow'
                       : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
-                    }`}
+                  }`}
                 >
                   {s.label}
                 </button>
               ))}
             </div>
 
-            {/* Search */}
-            <div className="flex-1 relative">
-              <Search className="absolute right-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
+            <div className="relative w-full lg:w-80">
+              <Search className="w-4 h-4 text-gray-400 absolute right-3 top-1/2 -translate-y-1/2" />
               <Input
                 value={searchQuery}
                 onChange={e => setSearchQuery(e.target.value)}
-                placeholder="بحث بالاسم..."
+                placeholder="بحث بالاسم أو الولاية أو التخصص..."
                 className="h-10 pr-10 rounded-lg"
               />
             </div>
           </div>
         </Card>
 
-        {/* Raqis Table */}
         {loading ? (
-          <div className="flex items-center justify-center py-20">
-            <Loader2 className="w-8 h-8 animate-spin text-[#1f6f50]" />
+          <div className="flex items-center justify-center py-20 text-[#1f6f50] font-bold">
+            <Loader2 className="w-6 h-6 animate-spin ml-2" />
+            جاري التحميل...
           </div>
         ) : filtered.length > 0 ? (
-          <div className="space-y-3">
+          <div className="space-y-4">
             {filtered.map(raqi => (
               <Card
                 key={raqi.id}
-                className="p-4 rounded-2xl shadow-sm hover:shadow-md transition-shadow"
+                className="rounded-3xl border border-gray-200 shadow-sm p-5 flex flex-col lg:flex-row lg:items-center lg:justify-between gap-4"
               >
-                <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
-                  {/* Info */}
-                  <div className="flex-1 min-w-0">
-                    <div className="flex items-center gap-3 mb-2">
-                      <h3 className="font-extrabold text-gray-900">{raqi.full_name}</h3>
-                      {raqi.verified_badge && (
-                        <Award className="w-4 h-4 text-[#d6b14a]" />
-                      )}
-                      <span className={`text-xs font-bold px-2 py-0.5 rounded-full
-                        ${raqi.status === 'approved' ? 'bg-green-100 text-green-700'
-                          : raqi.status === 'pending' ? 'bg-amber-100 text-amber-700'
-                          : 'bg-red-100 text-red-700'}`}>
-                        {raqi.status === 'approved' ? 'معتمد'
-                          : raqi.status === 'pending' ? 'معلق'
-                          : 'مرفوض'}
+                <div className="flex-1">
+                  <div className="flex items-center gap-3 flex-wrap mb-3">
+                    <h3 className="text-2xl font-extrabold text-gray-900">{raqi.full_name}</h3>
+
+                    <span
+                      className={`px-3 py-1 rounded-full text-xs font-bold ${
+                        raqi.status === 'approved'
+                          ? 'bg-green-100 text-green-700'
+                          : raqi.status === 'pending'
+                          ? 'bg-amber-100 text-amber-700'
+                          : 'bg-red-100 text-red-700'
+                      }`}
+                    >
+                      {raqi.status === 'approved'
+                        ? 'معتمد'
+                        : raqi.status === 'pending'
+                        ? 'معلق'
+                        : 'مرفوض'}
+                    </span>
+
+                    {raqi.verified_badge && (
+                      <span className="px-3 py-1 rounded-full text-xs font-bold bg-blue-100 text-blue-700">
+                        موثق
                       </span>
-                    </div>
-                    <div className="flex flex-wrap items-center gap-x-4 gap-y-1 text-sm text-gray-500">
-                      {raqi.speciality && (
-                        <span className="flex items-center gap-1">
-                          <Star className="w-3 h-3" /> {raqi.speciality}
-                        </span>
-                      )}
-                      <span className="flex items-center gap-1">
-                        <MapPin className="w-3 h-3" /> {getWilayaName(raqi.wilaya)}
-                      </span>
-                      <span>{raqi.experience_years} سنة خبرة</span>
-                    </div>
+                    )}
                   </div>
 
-                  {/* Actions */}
-                  <div className="flex items-center gap-2 flex-wrap">
-                    {raqi.status === 'pending' && (
-                      <>
-                        <Button
-                          size="sm"
-                          onClick={() => handleStatus(raqi.id, 'approved')}
-                          className="bg-green-600 hover:bg-green-700 text-white rounded-lg h-9"
-                        >
-                          <CheckCircle className="w-4 h-4 mr-1" />
-                          قبول
-                        </Button>
-                        <Button
-                          size="sm"
-                          variant="outline"
-                          onClick={() => handleStatus(raqi.id, 'rejected')}
-                          className="border-red-300 text-red-600 hover:bg-red-50 rounded-lg h-9"
-                        >
-                          <XCircle className="w-4 h-4 mr-1" />
-                          رفض
-                        </Button>
-                      </>
+                  <div className="flex flex-wrap gap-x-6 gap-y-2 text-sm text-gray-600">
+                    {raqi.speciality && <span>{raqi.speciality}</span>}
+                    {raqi.wilaya && (
+                      <span className="inline-flex items-center gap-1">
+                        <MapPin className="w-4 h-4 text-[#1f6f50]" />
+                        {getWilayaName(raqi.wilaya)}
+                      </span>
                     )}
-                    {raqi.status === 'approved' && (
-                      <Button
-                        size="sm"
-                        variant={raqi.verified_badge ? 'default' : 'outline'}
-                        onClick={() => handleToggleVerified(raqi.id, raqi.verified_badge)}
-                        className={raqi.verified_badge
-                          ? 'bg-[#d6b14a] hover:bg-[#c4a043] text-white rounded-lg h-9'
-                          : 'border-[#d6b14a] text-[#b8942a] hover:bg-amber-50 rounded-lg h-9'
-                        }
-                      >
-                        <Award className="w-4 h-4 mr-1" />
-                        {raqi.verified_badge ? 'إلغاء التوثيق' : 'توثيق'}
-                      </Button>
+                    {typeof raqi.experience_years === 'number' && (
+                      <span>{raqi.experience_years} سنة خبرة</span>
                     )}
-                    <Button
-                      size="sm"
-                      variant="ghost"
-                      onClick={() => handleDelete(raqi.id)}
-                      className="text-red-400 hover:text-red-600 hover:bg-red-50 h-9"
-                    >
-                      <Trash2 className="w-4 h-4" />
-                    </Button>
                   </div>
+                </div>
+
+                <div className="flex flex-wrap gap-2">
+                  {raqi.status === 'pending' && (
+                    <>
+                      <Button
+                        onClick={() => handleStatus(raqi.id, 'approved')}
+                        className="bg-green-600 hover:bg-green-700 text-white rounded-lg h-9"
+                      >
+                        قبول
+                      </Button>
+                      <Button
+                        onClick={() => handleStatus(raqi.id, 'rejected')}
+                        className="border border-red-300 text-red-600 hover:bg-red-50 rounded-lg h-9 bg-white"
+                      >
+                        رفض
+                      </Button>
+                    </>
+                  )}
+
+                  {raqi.status === 'approved' && (
+                    <Button
+                      onClick={() => handleToggleVerified(raqi.id, !!raqi.verified_badge)}
+                      className={
+                        raqi.verified_badge
+                          ? 'bg-[#d6b14a] hover:bg-[#c4a043] text-white rounded-lg h-9'
+                          : 'border border-[#d6b14a] text-[#b8942a] hover:bg-amber-50 rounded-lg h-9 bg-white'
+                      }
+                    >
+                      {raqi.verified_badge ? 'إلغاء التوثيق' : 'توثيق'}
+                    </Button>
+                  )}
+
+                  <Button
+                    onClick={() => handleDelete(raqi.id)}
+                    className="bg-white text-red-500 border border-red-200 hover:bg-red-50 rounded-lg h-9"
+                  >
+                    <Trash2 className="w-4 h-4" />
+                  </Button>
                 </div>
               </Card>
             ))}
           </div>
         ) : (
-          <div className="text-center py-16">
-            <p className="text-gray-400 font-bold">لا توجد نتائج</p>
-          </div>
+          <Card className="rounded-2xl border-0 shadow-sm p-12 text-center text-gray-500 font-semibold">
+            لا توجد نتائج
+          </Card>
         )}
       </div>
     </div>

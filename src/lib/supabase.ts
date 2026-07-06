@@ -262,7 +262,7 @@ export async function registerRaqi(raqi: Omit<RaqiInsert, 'status'>): Promise<vo
 export async function getAllRaqis(status?: string): Promise<Raqi[]> {
   let query = supabase
     .from('raqis')
-    .select('id, full_name, status, created_at')
+    .select('*')
     .order('created_at', { ascending: false });
 
   if (status && status !== 'all') {
