@@ -71,11 +71,18 @@ export default function Admin() {
   };
 
   const handleDelete = async (id: string) => {
-    if (confirm('هل أنت متأكد من حذف هذا الراقي؟')) {
-      await deleteRaqi(id);
-      await loadRaqis();
-    }
-  };
+  const confirmed = window.confirm('هل أنت متأكد من حذف هذا الراقي؟');
+  if (!confirmed) return;
+
+  try {
+    await deleteRaqi(id);
+    await loadRaqis();
+    alert('تم حذف الراقي بنجاح');
+  } catch (error: any) {
+    console.error('Delete error:', error);
+    alert(error?.message || 'حدث خطأ أثناء الحذف');
+  }
+};
 
   const getWilayaName = (code: string) => {
     return mockWilayas.find(w => w.code === code)?.name_ar || code;
