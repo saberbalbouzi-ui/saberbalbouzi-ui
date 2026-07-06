@@ -32,7 +32,7 @@ export default function Register() {
     if (!form.full_name.trim()) errs.full_name = 'الاسم الكامل مطلوب';
     if (!form.wilaya) errs.wilaya = 'الولاية مطلوبة';
     if (!form.slug.trim()) errs.slug = 'المعرف (slug) مطلوب';
-    else if (!/^[a-z0-9-]+$/.test(form.slug)) errs.slug = 'المعرف يجب أن يحتوي على أحف إنجليزية وأرقام وشرطات فقط';
+    else if (!/^[a-z0-9-]+$/.test(form.slug)) errs.slug = 'المعرف يجب أن يحتوي على أحرف إنجليزية وأرقام وشرطات فقط';
     setErrors(errs);
     return Object.keys(errs).length === 0;
   };
