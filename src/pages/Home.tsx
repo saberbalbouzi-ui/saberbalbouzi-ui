@@ -32,7 +32,7 @@ function AzkarSection() {
       setCategoryData(cat || null);
       // Reset counts when changing category
       const initialCounts: Record<string, number> = {};
-      cat?.azkar.forEach((z, i) => { initialCounts[`${cat.id}-${i}`] = z.count; });
+      cat?.azkar.forEach((z, i) => { initialCounts[`${cat.id}-${i}`] = z.count ?? 0; });
       setCounts(prev => ({ ...prev, ...initialCounts }));
     } else {
       setCategoryData(null);
@@ -143,7 +143,7 @@ function AzkarSection() {
                         {remaining}
                       </span>
                       <button
-                        onClick={() => handleCount(categoryData.id, idx, zekr.count)}
+                        onClick={() => handleCount(categoryData.id, idx, zekr.count ?? 0)}
                         disabled={isDone}
                         className={`w-full py-2 rounded-lg text-xs font-bold transition-all
                           ${isDone
@@ -154,7 +154,7 @@ function AzkarSection() {
                         {isDone ? 'تم' : 'تسبيح'}
                       </button>
                       <button
-                        onClick={() => handleReset(categoryData.id, idx, zekr.count)}
+                       onClick={() => handleReset(categoryData.id, idx, zekr.count ?? 0)}
                         className="w-full py-1.5 rounded-lg text-xs font-bold bg-red-500 text-white hover:bg-red-600 active:scale-95 transition-all"
                       >
                         إعادة
