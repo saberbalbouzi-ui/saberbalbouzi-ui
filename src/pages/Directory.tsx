@@ -26,7 +26,7 @@ export default function Directory() {
       try {
         const data = await getRaqis();
         setRaqis(data);
-        setFiltered(data);
+        setFiltered([]);
       } catch (err) {
         console.error('Error loading raqis:', err);
       } finally {
@@ -40,20 +40,26 @@ export default function Directory() {
   useEffect(() => {
     let result = [...raqis];
 
-    if (wilayaFilter) {
-      result = result.filter(r => r.wilaya === wilayaFilter);
-    }
+if (!wilayaFilter && !searchQuery.trim()) {
+  setFiltered([]);
+  setSearchParams({});
+  return;
+}
 
-    if (searchQuery.trim()) {
-      const q = searchQuery.trim().toLowerCase();
-      result = result.filter(r =>
-        r.full_name.toLowerCase().includes(q) ||
-        (r.speciality?.toLowerCase().includes(q) ?? false) ||
-        (r.address?.toLowerCase().includes(q) ?? false)
-      );
-    }
+if (wilayaFilter) {
+  result = result.filter(r => r.wilaya === wilayaFilter);
+}
 
-    setFiltered(result);
+if (searchQuery.trim()) {
+  const q = searchQuery.trim().toLowerCase();
+  result = result.filter(r =>
+    r.full_name.toLowerCase().includes(q) ||
+    (r.speciality?.toLowerCase().includes(q) ?? false) ||
+    (r.address?.toLowerCase().includes(q) ?? false)
+  );
+}
+
+setFiltered(result);
 
     // Update URL
     if (wilayaFilter) {
@@ -101,7 +107,7 @@ export default function Directory() {
                   bg-white text-gray-800 focus:outline-none focus:ring-2 focus:ring-[#1f6f50]
                   focus:border-transparent"
               >
-                <option value="">كل الولايات</option>
+                <option value="">اختر الولاية</option>
                 {mockWilayas.map(w => (
                   <option key={w.code} value={w.code}>{w.name_ar}</option>
                 ))}
