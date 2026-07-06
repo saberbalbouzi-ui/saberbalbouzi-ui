@@ -111,7 +111,7 @@ export default function SingleRaqi() {
       ? (reviews.reduce((sum, r) => sum + r.rating, 0) / reviews.length).toFixed(1)
       : '0';
 
-  const whatsappText = `السلام عليكم ${raqi?.full_name ?? ''}، تواصلت معكم عبر منصة رُقاة وأرغب في الاستفسار عن الرقية الشرعية.`;
+  const whatsappText = `السلام عليكم ${raqi?.full_name ?? ''}، تواصلت معكم عبر منصة رُقاة  roqat.alyssumdz.com وأرغب في الاستفسار عن الرقية الشرعية.`;
 
   const whatsappUrl = raqi?.whatsapp
     ? `https://wa.me/${normalizeWhatsAppNumber(raqi.whatsapp)}?text=${encodeURIComponent(
