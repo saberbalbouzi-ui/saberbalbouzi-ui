@@ -254,7 +254,7 @@ function HeroSection() {
         {/* Stats */}
         <div className="flex items-center justify-center gap-8 md:gap-14 flex-wrap mt-14">
           <div className="text-center min-w-[100px]">
-            <strong className="block text-4xl md:text-5xl font-black text-[#d6b14a] mb-2">+150</strong>
+            <strong className="block text-4xl md:text-5xl font-black text-[#d6b14a] mb-2">+1500</strong>
             <span className="text-white/90 text-base font-semibold">راقي معتمد</span>
           </div>
           <div className="text-center min-w-[100px]">
