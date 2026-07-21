@@ -1,0 +1,340 @@
+import { useState } from 'react';
+import { Link } from 'react-router-dom';
+import { Card } from '@/components/ui/card';
+import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
+import { Textarea } from '@/components/ui/textarea';
+import { registerRaqiWithAccount, mockWilayas } from '@/lib/supabase';
+import { ChevronRight, Shield, UserPlus, Loader2, CheckCircle } from 'lucide-react';
+
+export default function Register() {
+  const [submitted, setSubmitted] = useState(false);
+  const [submitting, setSubmitting] = useState(false);
+  const [submitError, setSubmitError] = useState('');
+
+  const [form, setForm] = useState({
+    email: '',
+    password: '',
+    slug: '',
+    full_name: '',
+    speciality: '',
+    phone: '',
+    whatsapp: '',
+    wilaya: '',
+    address: '',
+    experience_years: 0,
+    bio: '',
+  });
+
+  const [errors, setErrors] = useState<Record<string, string>>({});
+
+  const validate = (): boolean => {
+    const errs: Record<string, string> = {};
+
+    if (!form.full_name.trim()) errs.full_name = 'الاسم الكامل مطلوب';
+    if (!form.email.trim()) errs.email = 'البريد الإلكتروني مطلوب';
+    if (!/\S+@\S+\.\S+/.test(form.email.trim())) {
+      errs.email = 'البريد الإلكتروني غير صحيح';
+    }
+    if (!form.password.trim()) errs.password = 'كلمة السر مطلوبة';
+    else if (form.password.length < 6) errs.password = 'كلمة السر يجب أن تكون 6 أحرف على الأقل';
+    if (!form.wilaya) errs.wilaya = 'الولاية مطلوبة';
+    if (!form.slug.trim()) errs.slug = 'المعرف (slug) مطلوب';
+    else if (!/^[a-z0-9-]+$/.test(form.slug)) {
+      errs.slug = 'المعرف يجب أن يحتوي على أحرف إنجليزية وأرقام وشرطات فقط';
+    }
+
+    setErrors(errs);
+    return Object.keys(errs).length === 0;
+  };
+
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setSubmitError('');
+
+    if (!validate()) return;
+
+    setSubmitting(true);
+    try {
+      await registerRaqiWithAccount({
+        email: form.email,
+        password: form.password,
+        slug: form.slug,
+        full_name: form.full_name,
+        speciality: form.speciality,
+        phone: form.phone,
+        whatsapp: form.whatsapp,
+        wilaya: form.wilaya,
+        address: form.address,
+        experience_years: form.experience_years,
+        bio: form.bio,
+      });
+
+      setSubmitted(true);
+      setForm({
+        email: '',
+        password: '',
+        slug: '',
+        full_name: '',
+        speciality: '',
+        phone: '',
+        whatsapp: '',
+        wilaya: '',
+        address: '',
+        experience_years: 0,
+        bio: '',
+      });
+    } catch (err: any) {
+      console.error('Error registering:', err);
+      setSubmitError(err?.message || 'حدث خطأ أثناء التسجيل');
+    } finally {
+      setSubmitting(false);
+    }
+  };
+
+  const handleChange = (field: string, value: string | number) => {
+    setForm((prev) => ({ ...prev, [field]: value }));
+
+    if (errors[field]) {
+      setErrors((prev) => {
+        const n = { ...prev };
+        delete n[field];
+        return n;
+      });
+    }
+
+    setSubmitError('');
+  };
+
+  if (submitted) {
+    return (
+      <div className="min-h-screen bg-gray-50 px-4 py-10">
+        <div className="max-w-2xl mx-auto">
+          <Card className="rounded-3xl border-0 shadow-xl p-8 text-center">
+            <CheckCircle className="w-16 h-16 text-green-600 mx-auto mb-4" />
+            <h1 className="text-3xl font-extrabold text-gray-900 mb-3">
+              تم إرسال الطلب بنجاح!
+            </h1>
+            <p className="text-gray-600 leading-relaxed mb-6">
+              تم إنشاء حسابك وحفظ طلب التسجيل. بعد المراجعة والموافقة سيظهر الراقي في الدليل،
+              ويمكنك الدخول لاحقًا لتعديل بياناتك.
+            </p>
+
+            <div className="flex flex-col sm:flex-row gap-3">
+              <Link to="/roqat" className="flex-1">
+                <Button className="w-full h-12 rounded-xl bg-[#1f6f50] hover:bg-[#18593f] text-white font-bold">
+                  تصفح دليل الرقاة
+                </Button>
+              </Link>
+
+              <Button
+                variant="outline"
+                onClick={() => setSubmitted(false)}
+                className="flex-1 h-12 rounded-xl"
+              >
+                تسجيل راقٍ آخر
+              </Button>
+            </div>
+          </Card>
+        </div>
+      </div>
+    );
+  }
+
+  return (
+    <div className="min-h-screen bg-gray-50 px-4 py-10">
+      <div className="max-w-4xl mx-auto">
+        <Link
+          to="/"
+          className="inline-flex items-center gap-2 text-[#1f6f50] font-bold hover:underline mb-6"
+        >
+          <ChevronRight className="w-4 h-4" />
+          العودة للرئيسية
+        </Link>
+
+        <div className="text-center mb-8">
+          <div className="w-16 h-16 rounded-2xl bg-[#1f6f50]/10 flex items-center justify-center mx-auto mb-4">
+            <Shield className="w-8 h-8 text-[#1f6f50]" />
+          </div>
+          <h1 className="text-3xl md:text-4xl font-extrabold text-gray-900 mb-3">
+            تسجيل راقٍ جديد
+          </h1>
+          <p className="text-gray-600 max-w-2xl mx-auto leading-relaxed">
+            املأ البيانات التالية بدقة، وسيتم إنشاء حساب دخول لك ثم إرسال الطلب للمراجعة قبل النشر.
+          </p>
+        </div>
+
+        <Card className="rounded-3xl border-0 shadow-xl p-6 md:p-8">
+          <form onSubmit={handleSubmit} className="space-y-6">
+            {submitError && (
+              <div className="rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm font-bold text-red-700">
+                {submitError}
+              </div>
+            )}
+
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
+              <div className="space-y-2">
+                <label className="text-sm font-bold text-gray-700">الاسم الكامل *</label>
+                <Input
+                  value={form.full_name}
+                  onChange={(e) => handleChange('full_name', e.target.value)}
+                  placeholder="أحمد بن علي"
+                  className={`h-12 rounded-xl ${errors.full_name ? 'border-red-300 ring-1 ring-red-200' : ''}`}
+                />
+                {errors.full_name && <p className="text-red-600 text-sm">{errors.full_name}</p>}
+              </div>
+
+              <div className="space-y-2">
+                <label className="text-sm font-bold text-gray-700">البريد الإلكتروني *</label>
+                <Input
+                  type="email"
+                  value={form.email}
+                  onChange={(e) => handleChange('email', e.target.value)}
+                  placeholder="example@email.com"
+                  className={`h-12 rounded-xl ${errors.email ? 'border-red-300 ring-1 ring-red-200' : ''}`}
+                />
+                {errors.email && <p className="text-red-600 text-sm">{errors.email}</p>}
+              </div>
+
+              <div className="space-y-2">
+                <label className="text-sm font-bold text-gray-700">كلمة السر *</label>
+                <Input
+                  type="password"
+                  value={form.password}
+                  onChange={(e) => handleChange('password', e.target.value)}
+                  placeholder="6 أحرف على الأقل"
+                  className={`h-12 rounded-xl ${errors.password ? 'border-red-300 ring-1 ring-red-200' : ''}`}
+                />
+                {errors.password && <p className="text-red-600 text-sm">{errors.password}</p>}
+              </div>
+
+              <div className="space-y-2">
+                <label className="text-sm font-bold text-gray-700">المعرف (Slug) *</label>
+                <Input
+                  value={form.slug}
+                  onChange={(e) =>
+                    handleChange('slug', e.target.value.toLowerCase().replace(/\s+/g, '-'))
+                  }
+                  placeholder="ahmed-benali"
+                  dir="ltr"
+                  className={`h-12 rounded-xl text-left ${errors.slug ? 'border-red-300 ring-1 ring-red-200' : ''}`}
+                />
+                {errors.slug && <p className="text-red-600 text-sm">{errors.slug}</p>}
+              </div>
+
+              <div className="space-y-2">
+                <label className="text-sm font-bold text-gray-700">الولاية *</label>
+                <select
+                  value={form.wilaya}
+                  onChange={(e) => handleChange('wilaya', e.target.value)}
+                  className={`w-full h-12 px-4 border rounded-xl text-base bg-white text-gray-800 focus:outline-none focus:ring-2 focus:ring-[#1f6f50] ${
+                    errors.wilaya ? 'border-red-300 ring-1 ring-red-200' : 'border-gray-200'
+                  }`}
+                >
+                  <option value="">اختر الولاية</option>
+                  {mockWilayas.map((w) => (
+                    <option key={w.code} value={w.code}>
+                      {w.name_ar}
+                    </option>
+                  ))}
+                </select>
+                {errors.wilaya && <p className="text-red-600 text-sm">{errors.wilaya}</p>}
+              </div>
+
+              <div className="space-y-2">
+                <label className="text-sm font-bold text-gray-700">العنوان</label>
+                <Input
+                  value={form.address}
+                  onChange={(e) => handleChange('address', e.target.value)}
+                  placeholder="الجزائر العاصمة - حي محمدي"
+                  className="h-12 rounded-xl"
+                />
+              </div>
+
+              <div className="space-y-2">
+                <label className="text-sm font-bold text-gray-700">التخصص</label>
+                <Input
+                  value={form.speciality}
+                  onChange={(e) => handleChange('speciality', e.target.value)}
+                  placeholder="الرقية الشرعية وعلاج السحر"
+                  className="h-12 rounded-xl"
+                />
+              </div>
+
+              <div className="space-y-2">
+                <label className="text-sm font-bold text-gray-700">سنوات الخبرة</label>
+                <Input
+                  type="number"
+                  value={form.experience_years}
+                  onChange={(e) => handleChange('experience_years', parseInt(e.target.value) || 0)}
+                  placeholder="5"
+                  className="h-12 rounded-xl"
+                />
+              </div>
+
+              <div className="space-y-2">
+                <label className="text-sm font-bold text-gray-700">رقم الهاتف</label>
+                <Input
+                  value={form.phone}
+                  onChange={(e) => handleChange('phone', e.target.value)}
+                  placeholder="0555123456"
+                  dir="ltr"
+                  className="h-12 rounded-xl text-left"
+                />
+              </div>
+
+              <div className="space-y-2">
+                <label className="text-sm font-bold text-gray-700">رقم الواتساب</label>
+                <Input
+                  value={form.whatsapp}
+                  onChange={(e) => handleChange('whatsapp', e.target.value)}
+                  placeholder="0555123456"
+                  dir="ltr"
+                  className="h-12 rounded-xl text-left"
+                />
+                <p className="text-xs text-gray-500">
+                  سيتم تحويل الرقم تلقائياً لصيغة دولية عند النشر
+                </p>
+              </div>
+            </div>
+
+            <div className="space-y-2">
+              <label className="text-sm font-bold text-gray-700">نبذة عن الراقي</label>
+              <Textarea
+                value={form.bio}
+                onChange={(e) => handleChange('bio', e.target.value)}
+                placeholder="اكتب نبذة مختصرة عن خبرتك وتخصصك..."
+                rows={5}
+                className="rounded-xl resize-none"
+              />
+            </div>
+
+            <div className="pt-2">
+              <Button
+                type="submit"
+                disabled={submitting}
+                className="w-full h-12 rounded-xl bg-[#1f6f50] hover:bg-[#18593f] text-white font-bold"
+              >
+                {submitting ? (
+                  <>
+                    <Loader2 className="w-4 h-4 ml-2 animate-spin" />
+                    جاري إرسال الطلب...
+                  </>
+                ) : (
+                  <>
+                    <UserPlus className="w-4 h-4 ml-2" />
+                    إرسال طلب التسجيل
+                  </>
+                )}
+              </Button>
+            </div>
+
+            <div className="rounded-xl bg-amber-50 border border-amber-200 px-4 py-3 text-sm text-amber-900">
+              ملاحظة: الطلب لا يُنشر مباشرة، بل يُحفظ أولًا للمراجعة ثم الاعتماد.
+            </div>
+          </form>
+        </Card>
+      </div>
+    </div>
+  );
+}

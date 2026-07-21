@@ -1,18 +1,36 @@
 // ============================================================
-// دليل الرقاة - Supabase Client
+// دليل الرقاة - Supabase Client (CORRIGÉ)
 // ============================================================
 import { createClient } from '@supabase/supabase-js';
-import type { Raqi, RaqiInsert, Review, Wilaya } from '@/types';
+import type { Raqi, Review, Wilaya } from '@/types';
 
-// NOTE: Replace with your actual Supabase credentials after creating the project
-const SUPABASE_URL = import.meta.env.VITE_SUPABASE_URL || 'https://your-project.supabase.co';
-const SUPABASE_KEY = import.meta.env.VITE_SUPABASE_ANON_KEY || 'your-anon-key';
+const SUPABASE_URL =
+  import.meta.env.VITE_SUPABASE_URL || 'https://your-project.supabase.co';
+const SUPABASE_KEY =
+  import.meta.env.VITE_SUPABASE_ANON_KEY || 'your-anon-key';
 
 export const supabase = createClient(SUPABASE_URL, SUPABASE_KEY);
 
-// ============================================================
-// Mock Data for MVP (until Supabase is connected)
-// ============================================================
+type ExtendedRaqi = Raqi & {
+  email?: string | null;
+  user_id?: string | null;
+};
+
+type PublicRegisterInput = {
+  full_name: string;
+  speciality?: string;
+  phone?: string;
+  whatsapp?: string;
+  wilaya: string;
+  address?: string;
+  experience_years?: number;
+  bio?: string;
+};
+
+type AccountRegisterInput = PublicRegisterInput & {
+  email: string;
+  password: string;
+};
 
 export const mockWilayas: Wilaya[] = [
   { id: 1, code: '01', name_ar: 'أدرار' },
@@ -75,100 +93,62 @@ export const mockWilayas: Wilaya[] = [
   { id: 58, code: '58', name_ar: 'المنيعة' },
 ];
 
-export const mockRaqis: Raqi[] = [
-  {
-    id: '1',
-    slug: 'ahmed-benali',
-    full_name: 'أحمد بن علي',
-    speciality: 'الرقية الشرعية وعلاج السحر',
-    phone: '0555123456',
-    whatsapp: '0555123456',
-    wilaya: '16',
-    address: 'الجزائر العاصمة - حي محمدي',
-    experience_years: 15,
-    bio: 'راقٍ شرعي معتمد، حاصل على إجازة في القراءات، يعمل في مجال الرقية الشرعية منذ 15 عاماً، يعالج حالات السحر والعين والحسد والمس على وفق الكتاب والسنة.',
-    verified_badge: true,
-    status: 'approved',
-    created_at: '2024-01-01',
-    updated_at: '2024-01-01',
-  },
-  {
-    id: '2',
-    slug: 'khaled-merabet',
-    full_name: 'خالد مرابط',
-    speciality: 'الرقية الشرعية وعلاج المس',
-    phone: '0666789012',
-    whatsapp: '0666789012',
-    wilaya: '31',
-    address: 'وهران - حي السلام',
-    experience_years: 10,
-    bio: 'متخصص في علاج المس والسحر والعين والحسد باستخدام القرآن الكريم والسنة النبوية.',
-    verified_badge: true,
-    status: 'approved',
-    created_at: '2024-01-02',
-    updated_at: '2024-01-02',
-  },
-  {
-    id: '3',
-    slug: 'youssef-kadi',
-    full_name: 'يوسف القاضي',
-    speciality: 'الرقية الشرعية والتعليم',
-    phone: '0777123456',
-    whatsapp: '0777123456',
-    wilaya: '19',
-    address: 'سطيف - حي الأمير عبد القادر',
-    experience_years: 8,
-    bio: 'راقٍ شرعي وخطيب مسجد، يجمع بين الرقية الشرعية والتعليم الشرعي.',
-    verified_badge: false,
-    status: 'approved',
-    created_at: '2024-01-03',
-    updated_at: '2024-01-03',
-  },
-  {
-    id: '4',
-    slug: 'omar-fares',
-    full_name: 'عمر فارس',
-    speciality: 'الرقية الشرعية',
-    phone: '0555567890',
-    whatsapp: '0555567890',
-    wilaya: '25',
-    address: 'قسنطينة - حي زواغي',
-    experience_years: 20,
-    bio: 'راقٍ شرعي كبير بخبرة 20 عاماً في علاج حالات السحر والمس والعين.',
-    verified_badge: true,
-    status: 'approved',
-    created_at: '2024-01-04',
-    updated_at: '2024-01-04',
-  },
-  {
-    id: '5',
-    slug: 'amine-haddad',
-    full_name: 'أمين حداد',
-    speciality: 'الرقية الشرعية وعلاج العين',
-    phone: '0666234567',
-    whatsapp: '0666234567',
-    wilaya: '06',
-    address: 'بجاية - حي الأندلس',
-    experience_years: 5,
-    bio: 'راقٍ شاب متخصص في علاج العين والحسد والسحر الشرعي.',
-    verified_badge: false,
-    status: 'approved',
-    created_at: '2024-01-05',
-    updated_at: '2024-01-05',
-  },
-];
+function sanitizeText(value?: string): string {
+  return value?.trim() || '';
+}
 
-export const mockReviews: Review[] = [
-  { id: '1', raqi_id: '1', rating: 5, comment: 'راقٍ ممتاز ومجرب، شفيت بفضل الله ثم بدعائه', reviewer_name: 'محمد', created_at: '2024-02-01' },
-  { id: '2', raqi_id: '1', rating: 5, comment: 'شخص محترم وخلوق، الرقية عنده مؤثرة بإذن الله', reviewer_name: 'فاطمة', created_at: '2024-02-02' },
-  { id: '3', raqi_id: '2', rating: 4, comment: 'جزاه الله خيراً، أعانني كثيراً', reviewer_name: 'أحمد', created_at: '2024-02-03' },
-];
+function slugify(value: string): string {
+  return value
+    .trim()
+    .toLowerCase()
+    .normalize('NFD')
+    .replace(/[\u0300-\u036f]/g, '')
+    .replace(/[^\w\s-]/g, '')
+    .replace(/\s+/g, '-')
+    .replace(/-+/g, '-')
+    .replace(/^-|-$/g, '');
+}
 
-// ============================================================
-// API Functions (Supabase)
-// ============================================================
+function getSafeErrorMessage(error: unknown): string {
+  if (typeof error === 'string' && error.trim()) return error;
 
-// Get approved raqis with optional wilaya filter
+  if (error && typeof error === 'object') {
+    const e = error as Record<string, unknown>;
+
+    if (typeof e.message === 'string' && e.message.trim()) return e.message;
+    if (typeof e.error_description === 'string' && e.error_description.trim()) {
+      return e.error_description;
+    }
+    if (typeof e.details === 'string' && e.details.trim()) return e.details;
+    if (typeof e.hint === 'string' && e.hint.trim()) return e.hint;
+  }
+
+  return 'حدث خطأ غير متوقع';
+}
+
+async function generateUniqueSlug(fullName: string): Promise<string> {
+  const baseSlug = slugify(fullName) || `raqi-${Date.now()}`;
+  let slug = baseSlug;
+  let counter = 2;
+
+  while (true) {
+    const { data, error } = await supabase
+      .from('raqis')
+      .select('id')
+      .eq('slug', slug)
+      .maybeSingle();
+
+    if (error) {
+      throw new Error(getSafeErrorMessage(error));
+    }
+
+    if (!data) return slug;
+
+    slug = `${baseSlug}-${counter}`;
+    counter += 1;
+  }
+}
+
 export async function getRaqis(wilayaCode?: string): Promise<Raqi[]> {
   let query = supabase
     .from('raqis')
@@ -183,14 +163,12 @@ export async function getRaqis(wilayaCode?: string): Promise<Raqi[]> {
   const { data, error } = await query;
 
   if (error) {
-    console.error('getRaqis error:', error);
-    throw error;
+    throw new Error(getSafeErrorMessage(error));
   }
 
   return (data ?? []) as Raqi[];
 }
 
-// Get single raqi by slug
 export async function getRaqiBySlug(slug: string): Promise<Raqi | null> {
   const { data, error } = await supabase
     .from('raqis')
@@ -199,14 +177,12 @@ export async function getRaqiBySlug(slug: string): Promise<Raqi | null> {
     .maybeSingle();
 
   if (error) {
-    console.error('getRaqiBySlug error:', error);
-    throw error;
+    throw new Error(getSafeErrorMessage(error));
   }
 
   return (data as Raqi | null) ?? null;
 }
 
-// Get reviews for a raqi
 export async function getReviews(raqiId: string): Promise<Review[]> {
   const { data, error } = await supabase
     .from('reviews')
@@ -215,50 +191,307 @@ export async function getReviews(raqiId: string): Promise<Review[]> {
     .order('created_at', { ascending: false });
 
   if (error) {
-    console.error('getReviews error:', error);
-    throw error;
+    throw new Error(getSafeErrorMessage(error));
   }
 
   return (data ?? []) as Review[];
 }
 
-// Add a review
 export async function addReview(review: {
   raqi_id: string;
   rating: number;
-  comment: string;
+  comment?: string;
   reviewer_name: string;
 }): Promise<void> {
-  const { error } = await supabase
-    .from('reviews')
-    .insert(review);
+  const { error } = await supabase.from('reviews').insert({
+    raqi_id: review.raqi_id,
+    rating: review.rating,
+    comment: sanitizeText(review.comment),
+    reviewer_name: sanitizeText(review.reviewer_name),
+  });
 
   if (error) {
-    console.error('addReview error:', error);
-    throw error;
+    throw new Error(getSafeErrorMessage(error));
   }
 }
 
-// Register new raqi
-export async function registerRaqi(raqi: Omit<RaqiInsert, 'status'>): Promise<void> {
-  const payload = {
-    ...raqi,
+export async function registerRaqi(raqi: PublicRegisterInput): Promise<void> {
+  const slug = await generateUniqueSlug(raqi.full_name);
+
+  const { error } = await supabase.from('raqis').insert({
+    slug,
+    has_auth_account: false,
+    full_name: sanitizeText(raqi.full_name),
+    speciality: sanitizeText(raqi.speciality),
+    phone: sanitizeText(raqi.phone),
+    whatsapp: sanitizeText(raqi.whatsapp),
+    wilaya: raqi.wilaya,
+    address: sanitizeText(raqi.address),
+    experience_years: raqi.experience_years ?? 0,
+    bio: sanitizeText(raqi.bio),
     status: 'pending',
     verified_badge: false,
-  };
+  });
+
+  if (error) {
+    throw new Error(getSafeErrorMessage(error));
+  }
+}
+
+/**
+ * Inscription avec création de compte Supabase Auth
+ * - Vérifie si un ancien profil existe avec cet email
+ * - Si non: cherche par nom + wilaya (pour raqis sans email)
+ * - Si trouvé: lie le compte auth à l'ancien profil (UPDATE)
+ * - Si non: crée un nouveau profil (INSERT)
+ */
+export async function registerRaqiWithAccount(
+  input: AccountRegisterInput
+): Promise<{ needsEmailConfirmation: boolean }> {
+  const email = input.email.trim().toLowerCase();
+  const fullName = sanitizeText(input.full_name);
+
+  // Étape 1: Créer le compte Supabase Auth
+  const { data: signUpData, error: signUpError } = await supabase.auth.signUp({
+    email,
+    password: input.password,
+    options: {
+      data: { full_name: fullName },
+    },
+  });
+
+  if (signUpError) {
+    throw new Error(getSafeErrorMessage(signUpError));
+  }
+
+  const userId = signUpData.user?.id ?? null;
+  const needsEmailConfirmation = signUpData.session === null;
+
+  // Étape 2: Chercher un ancien profil (d'abord par email, puis par nom + wilaya)
+  let existingRaqi: any = null;
+
+  // 2a. Chercher par email
+  const { data: byEmail, error: errEmail } = await supabase
+    .from('raqis')
+    .select('*')
+    .eq('email', email)
+    .maybeSingle();
+
+  if (errEmail) throw new Error(getSafeErrorMessage(errEmail));
+  if (byEmail) existingRaqi = byEmail;
+
+  // 2b. Si pas trouvé par email, chercher par nom + wilaya (pour raqis sans email)
+  if (!existingRaqi && fullName && input.wilaya) {
+    const { data: byNameWilaya, error: errName } = await supabase
+      .from('raqis')
+      .select('*')
+      .ilike('full_name', fullName)
+      .eq('wilaya', input.wilaya)
+      .is('user_id', null)
+      .maybeSingle();
+
+    if (errName) throw new Error(getSafeErrorMessage(errName));
+    if (byNameWilaya) existingRaqi = byNameWilaya;
+  }
+
+  if (existingRaqi) {
+    // ✅ Ancien raqi trouvé! Lier le compte auth à son profil
+    if (existingRaqi.user_id) {
+      throw new Error('هذا الحساب مرتبط بالفعل. يرجى تسجيل الدخول.');
+    }
+
+    const { error: updateError } = await supabase
+      .from('raqis')
+      .update({
+        user_id: userId,
+        email,
+        has_auth_account: true,
+        full_name: fullName,
+        speciality: sanitizeText(input.speciality) || existingRaqi.speciality,
+        phone: sanitizeText(input.phone) || existingRaqi.phone,
+        whatsapp: sanitizeText(input.whatsapp) || existingRaqi.whatsapp,
+        wilaya: input.wilaya || existingRaqi.wilaya,
+        address: sanitizeText(input.address) || existingRaqi.address,
+        experience_years: input.experience_years ?? existingRaqi.experience_years ?? 0,
+        bio: sanitizeText(input.bio) || existingRaqi.bio,
+        updated_at: new Date().toISOString(),
+      })
+      .eq('id', existingRaqi.id);
+
+    if (updateError) throw new Error(getSafeErrorMessage(updateError));
+  } else {
+    // ❌ Aucun ancien profil: créer un nouveau
+    const slug = await generateUniqueSlug(fullName);
+
+    const { error: insertError } = await supabase.from('raqis').insert({
+      user_id: userId,
+      email,
+      has_auth_account: true,
+      slug,
+      full_name: fullName,
+      speciality: sanitizeText(input.speciality),
+      phone: sanitizeText(input.phone),
+      whatsapp: sanitizeText(input.whatsapp),
+      wilaya: input.wilaya,
+      address: sanitizeText(input.address),
+      experience_years: input.experience_years ?? 0,
+      bio: sanitizeText(input.bio),
+      status: 'pending',
+      verified_badge: false,
+    });
+
+    if (insertError) throw new Error(getSafeErrorMessage(insertError));
+  }
+
+  return { needsEmailConfirmation };
+}
+
+/**
+ * استعادة حساب راقٍ مسجل سابقاً
+ * - تتحقق من وجود البريد في جدول raqis
+ * - تُرسل رابط دخول سحري (magic link)
+ */
+export async function claimRaqiAccount(email: string): Promise<void> {
+  const normalizedEmail = email.trim().toLowerCase();
+
+  // Vérifier que l'email existe dans raqis
+  const { data: raqi, error: raqiError } = await supabase
+    .from('raqis')
+    .select('id, user_id')
+    .eq('email', normalizedEmail)
+    .maybeSingle();
+
+  if (raqiError) {
+    throw new Error(getSafeErrorMessage(raqiError));
+  }
+
+  if (!raqi) {
+    throw new Error('لم يتم العثور على راقٍ مسجل بهذا البريد الإلكتروني');
+  }
+
+  if (raqi.user_id) {
+    throw new Error('هذا الحساب مرتبط بالفعل. يرجى استخدام تسجيل الدخول العادي.');
+  }
+
+  // Envoyer le magic link
+  const { error: otpError } = await supabase.auth.signInWithOtp({
+    email: normalizedEmail,
+    options: {
+      emailRedirectTo: `${window.location.origin}/raqi-dashboard`,
+    },
+  });
+
+  if (otpError) {
+    throw new Error(getSafeErrorMessage(otpError));
+  }
+}
+
+/**
+ * CORRECTION: Récupère le profil du raqi connecté
+ * Cherche d'abord par user_id, puis par email si nécessaire
+ */
+export async function getCurrentRaqiProfile(): Promise<ExtendedRaqi | null> {
+  const {
+    data: { user },
+    error: userError,
+  } = await supabase.auth.getUser();
+
+  if (userError) {
+    throw new Error(getSafeErrorMessage(userError));
+  }
+
+  if (!user) return null;
+
+  // Chercher par user_id
+  const { data: byUserId, error: byUserIdError } = await supabase
+    .from('raqis')
+    .select('*')
+    .eq('user_id', user.id)
+    .maybeSingle();
+
+  if (byUserIdError) {
+    throw new Error(getSafeErrorMessage(byUserIdError));
+  }
+
+  if (byUserId) {
+    return byUserId as ExtendedRaqi;
+  }
+
+  // Fallback: chercher par email et lier si trouvé
+  if (user.email) {
+    const normalizedEmail = user.email.toLowerCase();
+
+    const { data: byEmail, error: byEmailError } = await supabase
+      .from('raqis')
+      .select('*')
+      .eq('email', normalizedEmail)
+      .maybeSingle();
+
+    if (byEmailError) {
+      throw new Error(getSafeErrorMessage(byEmailError));
+    }
+
+    if (byEmail) {
+      if (!byEmail.user_id) {
+        const { error: linkError } = await supabase
+          .from('raqis')
+          .update({
+            user_id: user.id,
+            updated_at: new Date().toISOString(),
+          })
+          .eq('id', byEmail.id);
+
+        if (linkError) {
+          throw new Error(getSafeErrorMessage(linkError));
+        }
+
+        return {
+          ...(byEmail as ExtendedRaqi),
+          user_id: user.id,
+        };
+      }
+
+      return byEmail as ExtendedRaqi;
+    }
+  }
+
+  return null;
+}
+
+export async function updateCurrentRaqiProfile(
+  updates: Partial<ExtendedRaqi>
+): Promise<ExtendedRaqi | null> {
+  const current = await getCurrentRaqiProfile();
+
+  if (!current) {
+    throw new Error('لم يتم العثور على ملف الراقي');
+  }
 
   const { data, error } = await supabase
     .from('raqis')
-    .insert(payload)
-    .select();
+    .update({
+      ...updates,
+      updated_at: new Date().toISOString(),
+    })
+    .eq('id', current.id)
+    .select('*')
+    .maybeSingle();
 
-  console.log('registerRaqi payload:', payload);
-  console.log('registerRaqi data:', data);
-  console.log('registerRaqi error:', error);
+  if (error) {
+    throw new Error(getSafeErrorMessage(error));
+  }
 
-  if (error) throw error;
+  return (data as ExtendedRaqi | null) ?? null;
 }
-// Admin: Get all raqis with filter
+
+export async function signOutRaqi(): Promise<void> {
+  const { error } = await supabase.auth.signOut();
+
+  if (error) {
+    throw new Error(getSafeErrorMessage(error));
+  }
+}
+
 export async function getAllRaqis(status?: string): Promise<Raqi[]> {
   let query = supabase
     .from('raqis')
@@ -271,21 +504,13 @@ export async function getAllRaqis(status?: string): Promise<Raqi[]> {
 
   const { data, error } = await query;
 
- console.log(
-  'getAllRaqis data:',
-  data?.map(r => ({
-    id: r.id,
-    full_name: r.full_name,
-    status: r.status,
-    created_at: r.created_at,
-  }))
-);
-  console.log('getAllRaqis error:', error);
+  if (error) {
+    throw new Error(getSafeErrorMessage(error));
+  }
 
-  if (error) throw error;
   return (data ?? []) as Raqi[];
 }
-// Admin: Update raqi status
+
 export async function updateRaqiStatus(
   id: string,
   status: 'pending' | 'approved' | 'rejected'
@@ -299,13 +524,14 @@ export async function updateRaqiStatus(
     .eq('id', id);
 
   if (error) {
-    console.error('updateRaqiStatus error:', error);
-    throw error;
+    throw new Error(getSafeErrorMessage(error));
   }
 }
 
-// Admin: Toggle verified badge
-export async function toggleVerified(id: string, verified: boolean): Promise<void> {
+export async function toggleVerified(
+  id: string,
+  verified: boolean
+): Promise<void> {
   const { error } = await supabase
     .from('raqis')
     .update({
@@ -314,18 +540,15 @@ export async function toggleVerified(id: string, verified: boolean): Promise<voi
     })
     .eq('id', id);
 
-  if (error) throw error;
+  if (error) {
+    throw new Error(getSafeErrorMessage(error));
+  }
 }
 
-// Delete raqi
 export async function deleteRaqi(id: string): Promise<void> {
-  const { error } = await supabase
-    .from('raqis')
-    .delete()
-    .eq('id', id);
+  const { error } = await supabase.from('raqis').delete().eq('id', id);
 
   if (error) {
-    console.error('deleteRaqi error:', error);
-    throw error;
+    throw new Error(getSafeErrorMessage(error));
   }
 }
