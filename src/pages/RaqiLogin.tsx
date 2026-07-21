@@ -2,7 +2,7 @@
 // دليل الرقاة - Raqi Login & Quick Register (SOLUTION RAPIDE)
 // ============================================================
 import { useEffect, useState, type FormEvent } from 'react';
-import { useNavigate, Link } from 'react-router-dom';
+import { useNavigate } from 'react-router-dom';
 import { Card } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
