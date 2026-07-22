@@ -16,6 +16,11 @@ export interface Raqi {
   experience_years: number;
   bio: string | null;
   verified_badge: boolean;
+  featured_badge?: boolean;
+  has_auth_account?: boolean;
+  view_count?: number;
+  phone_click_count?: number;
+  whatsapp_click_count?: number;
   status: 'pending' | 'approved' | 'rejected';
   created_at: string;
   updated_at: string;

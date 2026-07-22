@@ -188,13 +188,26 @@ export default function Admin() {
     );
   });
 
-  const stats = {
+  const stats: {
+    total: number;
+    pending: number;
+    approved: number;
+    rejected: number;
+    verified: number;
+    featured: number;
+    totalViews: number;
+    totalPhone: number;
+    totalWhatsApp: number;
+  } = {
     total: raqis.length,
     pending: raqis.filter((r) => r.status === 'pending').length,
     approved: raqis.filter((r) => r.status === 'approved').length,
     rejected: raqis.filter((r) => r.status === 'rejected').length,
     verified: raqis.filter((r) => r.verified_badge).length,
     featured: raqis.filter((r: any) => r.featured_badge).length,
+    totalViews: raqis.reduce((sum: number, r: any) => sum + (r.view_count || 0), 0),
+    totalPhone: raqis.reduce((sum: number, r: any) => sum + (r.phone_click_count || 0), 0),
+    totalWhatsApp: raqis.reduce((sum: number, r: any) => sum + (r.whatsapp_click_count || 0), 0),
   };
 
   if (sessionLoading) {
