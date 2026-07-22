@@ -19,7 +19,6 @@ import {
   Send,
   User,
   Eye,
-  Lock,
   ExternalLink,
 } from 'lucide-react';
 
