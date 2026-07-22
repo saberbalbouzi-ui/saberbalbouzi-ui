@@ -22,6 +22,8 @@ import {
   User,
   Phone,
   MapPin,
+  Eye,
+  MessageCircle,
   BookOpen,
   Award,
   Mail,
@@ -41,6 +43,13 @@ export default function RaqiDashboard() {
   const [profile, setProfile] = useState<Raqi | null>(null);
   const [error, setError] = useState('');
   const [success, setSuccess] = useState('');
+
+  // Compteurs
+  const [stats, setStats] = useState({
+    view_count: 0,
+    phone_click_count: 0,
+    whatsapp_click_count: 0,
+  });
 
   // حذف الحساب
   const [showDeleteModal, setShowDeleteModal] = useState(false);
@@ -132,6 +141,15 @@ export default function RaqiDashboard() {
       }
 
       setProfile(data);
+
+      // Charger les compteurs
+      try {
+        const statsData = await getRaqiStats(data.id);
+        setStats(statsData);
+      } catch (err) {
+        console.warn('Stats load error:', err);
+      }
+
       setForm({
         full_name: data.full_name || '',
         email: (data as any).email || '',
@@ -385,6 +403,49 @@ export default function RaqiDashboard() {
                   </div>
                   <div className="w-11 h-11 rounded-xl bg-blue-100 text-blue-700 flex items-center justify-center">
                     <MapPin className="w-5 h-5" />
+                  </div>
+                </div>
+              </Card>
+
+              {/* Compteurs */}
+              <Card className="rounded-2xl border-0 shadow-sm p-4">
+                <div className="flex items-center justify-between">
+                  <div>
+                    <p className="text-sm text-gray-500 font-semibold">الزيارات</p>
+                    <p className="text-xl font-extrabold text-gray-900 mt-1">
+                      {stats.view_count.toLocaleString('ar-DZ')}
+                    </p>
+                  </div>
+                  <div className="w-11 h-11 rounded-xl bg-purple-100 text-purple-700 flex items-center justify-center">
+                    <Eye className="w-5 h-5" />
+                  </div>
+                </div>
+              </Card>
+
+              <Card className="rounded-2xl border-0 shadow-sm p-4">
+                <div className="flex items-center justify-between">
+                  <div>
+                    <p className="text-sm text-gray-500 font-semibold">اتصالات الهاتف</p>
+                    <p className="text-xl font-extrabold text-gray-900 mt-1">
+                      {stats.phone_click_count.toLocaleString('ar-DZ')}
+                    </p>
+                  </div>
+                  <div className="w-11 h-11 rounded-xl bg-indigo-100 text-indigo-700 flex items-center justify-center">
+                    <Phone className="w-5 h-5" />
+                  </div>
+                </div>
+              </Card>
+
+              <Card className="rounded-2xl border-0 shadow-sm p-4">
+                <div className="flex items-center justify-between">
+                  <div>
+                    <p className="text-sm text-gray-500 font-semibold">تواصل واتساب</p>
+                    <p className="text-xl font-extrabold text-gray-900 mt-1">
+                      {stats.whatsapp_click_count.toLocaleString('ar-DZ')}
+                    </p>
+                  </div>
+                  <div className="w-11 h-11 rounded-xl bg-emerald-100 text-emerald-700 flex items-center justify-center">
+                    <MessageCircle className="w-5 h-5" />
                   </div>
                 </div>
               </Card>

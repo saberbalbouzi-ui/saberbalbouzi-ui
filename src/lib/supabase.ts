@@ -545,6 +545,66 @@ export async function toggleVerified(
   }
 }
 
+
+// ============================================================
+// Compteurs (Visites, Appels, WhatsApp)
+// ============================================================
+
+export async function incrementViewCount(slug: string): Promise<void> {
+  const { error } = await supabase.rpc('increment_raqi_counter', {
+    p_slug: slug,
+    p_field: 'view_count',
+  });
+
+  if (error) {
+    console.warn('View count error:', error);
+  }
+}
+
+export async function incrementPhoneClick(id: string): Promise<void> {
+  const { error } = await supabase.rpc('increment_raqi_counter', {
+    p_slug: id,
+    p_field: 'phone_click_count',
+  });
+
+  if (error) {
+    console.warn('Phone click error:', error);
+  }
+}
+
+export async function incrementWhatsAppClick(id: string): Promise<void> {
+  const { error } = await supabase.rpc('increment_raqi_counter', {
+    p_slug: id,
+    p_field: 'whatsapp_click_count',
+  });
+
+  if (error) {
+    console.warn('WhatsApp click error:', error);
+  }
+}
+
+export async function getRaqiStats(id: string): Promise<{
+  view_count: number;
+  phone_click_count: number;
+  whatsapp_click_count: number;
+}> {
+  const { data, error } = await supabase
+    .from('raqis')
+    .select('view_count, phone_click_count, whatsapp_click_count')
+    .eq('id', id)
+    .maybeSingle();
+
+  if (error) {
+    throw new Error(getSafeErrorMessage(error));
+  }
+
+  return {
+    view_count: data?.view_count ?? 0,
+    phone_click_count: data?.phone_click_count ?? 0,
+    whatsapp_click_count: data?.whatsapp_click_count ?? 0,
+  };
+}
+
 export async function deleteRaqi(id: string): Promise<void> {
   const { error } = await supabase.from('raqis').delete().eq('id', id);
 

@@ -4,7 +4,7 @@ import { Card } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
-import { getRaqiBySlug, getReviews, addReview, mockWilayas } from '@/lib/supabase';
+import { getRaqiBySlug, getReviews, addReview, mockWilayas, incrementViewCount, incrementPhoneClick, incrementWhatsAppClick } from '@/lib/supabase';
 import type { Raqi, Review } from '@/types';
 import {
   Award,
@@ -17,6 +17,7 @@ import {
   Loader2,
   Send,
   User,
+  Eye,
 } from 'lucide-react';
 
 export default function SingleRaqi() {
@@ -44,6 +45,7 @@ export default function SingleRaqi() {
         const raqiData = await getRaqiBySlug(slug);
         if (raqiData) {
           setRaqi(raqiData);
+          incrementViewCount(slug).catch(() => {});
           const reviewsData = await getReviews(raqiData.id);
           setReviews(reviewsData);
         }
@@ -198,6 +200,22 @@ export default function SingleRaqi() {
                 </div>
               )}
 
+              {/* Compteurs */}
+              <div className="flex items-center gap-4 mt-2">
+                <div className="flex items-center gap-1.5 text-sm text-purple-600 font-bold bg-purple-50 px-3 py-1.5 rounded-full">
+                  <Eye className="w-4 h-4" />
+                  <span>{raqi.view_count || 0} زيارة</span>
+                </div>
+                <div className="flex items-center gap-1.5 text-sm text-indigo-600 font-bold bg-indigo-50 px-3 py-1.5 rounded-full">
+                  <Phone className="w-4 h-4" />
+                  <span>{raqi.phone_click_count || 0} اتصال</span>
+                </div>
+                <div className="flex items-center gap-1.5 text-sm text-emerald-600 font-bold bg-emerald-50 px-3 py-1.5 rounded-full">
+                  <MessageCircle className="w-4 h-4" />
+                  <span>{raqi.whatsapp_click_count || 0} واتساب</span>
+                </div>
+              </div>
+
               <div className="border-t border-gray-100 divide-y divide-dashed divide-gray-200">
                 {raqi.speciality && (
                   <div className="flex justify-between items-start gap-4 py-4">
@@ -232,6 +250,9 @@ export default function SingleRaqi() {
                     href={whatsappUrl}
                     target="_blank"
                     rel="noopener noreferrer"
+                    onClick={() => {
+                      if (raqi?.id) incrementWhatsAppClick(raqi.id).catch(() => {});
+                    }}
                     className="inline-flex items-center justify-center gap-2 min-h-14 rounded-2xl bg-gradient-to-br from-[#25d366] to-[#128c7e] text-white font-extrabold text-base shadow-lg shadow-[#25d366]/20 hover:-translate-y-0.5 transition-all"
                   >
                     <MessageCircle className="w-5 h-5" />
@@ -242,6 +263,9 @@ export default function SingleRaqi() {
                 {raqi.phone && (
                   <a
                     href={`tel:${formatPhone(raqi.phone)}`}
+                    onClick={() => {
+                      if (raqi?.id) incrementPhoneClick(raqi.id).catch(() => {});
+                    }}
                     className="inline-flex items-center justify-center gap-2 min-h-14 rounded-2xl bg-white text-[#1f6f50] border border-[#cfe0d8] font-extrabold text-base hover:bg-gray-50 transition-all"
                   >
                     <Phone className="w-5 h-5" />

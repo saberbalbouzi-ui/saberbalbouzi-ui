@@ -26,6 +26,9 @@ import {
   Search,
   Mail,
   Sparkles,
+  Eye,
+  MessageCircle,
+  Phone,
 } from 'lucide-react';
 
 type StatusFilter = 'all' | 'pending' | 'approved' | 'rejected';
@@ -341,6 +344,24 @@ export default function Admin() {
               icon: Sparkles,
               color: 'bg-amber-100 text-amber-700',
             },
+            {
+              label: 'زيارات',
+              value: stats.totalViews,
+              icon: Eye,
+              color: 'bg-purple-100 text-purple-700',
+            },
+            {
+              label: 'اتصالات',
+              value: stats.totalPhone,
+              icon: Phone,
+              color: 'bg-indigo-100 text-indigo-700',
+            },
+            {
+              label: 'واتساب',
+              value: stats.totalWhatsApp,
+              icon: MessageCircle,
+              color: 'bg-emerald-100 text-emerald-700',
+            },
           ].map((s, i) => {
             const Icon = s.icon;
 
@@ -469,6 +490,22 @@ export default function Admin() {
                         {raqi.experience_years} سنة خبرة
                       </div>
                     )}
+
+                    {/* Compteurs */}
+                    <div className="flex gap-3 pt-2 mt-2 border-t border-gray-50">
+                      <div className="flex items-center gap-1 text-xs text-purple-600 font-bold">
+                        <Eye className="w-3.5 h-3.5" />
+                        {raqi.view_count || 0}
+                      </div>
+                      <div className="flex items-center gap-1 text-xs text-indigo-600 font-bold">
+                        <Phone className="w-3.5 h-3.5" />
+                        {raqi.phone_click_count || 0}
+                      </div>
+                      <div className="flex items-center gap-1 text-xs text-emerald-600 font-bold">
+                        <MessageCircle className="w-3.5 h-3.5" />
+                        {raqi.whatsapp_click_count || 0}
+                      </div>
+                    </div>
                   </div>
 
                   <div className="flex flex-wrap gap-2 pt-3 border-t border-gray-100">
