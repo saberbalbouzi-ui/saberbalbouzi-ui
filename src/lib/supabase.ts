@@ -9,7 +9,13 @@ const SUPABASE_URL =
 const SUPABASE_KEY =
   import.meta.env.VITE_SUPABASE_ANON_KEY || 'your-anon-key';
 
-export const supabase = createClient(SUPABASE_URL, SUPABASE_KEY);
+export const supabase = createClient(SUPABASE_URL, SUPABASE_KEY, {
+  realtime: {
+    params: {
+      eventsPerSecond: 10,
+    },
+  },
+});
 
 type ExtendedRaqi = Raqi & {
   email?: string | null;
@@ -547,7 +553,7 @@ export async function toggleVerified(
 
 
 // ============================================================
-// Compteurs (Visites, Appels, WhatsApp)
+// Compteurs (Visites, Appels, WhatsApp) — CORRIGÉ
 // ============================================================
 
 export async function incrementViewCount(slug: string): Promise<void> {
@@ -561,9 +567,9 @@ export async function incrementViewCount(slug: string): Promise<void> {
   }
 }
 
-export async function incrementPhoneClick(id: string): Promise<void> {
+export async function incrementPhoneClick(slug: string): Promise<void> {
   const { error } = await supabase.rpc('increment_raqi_counter', {
-    p_slug: id,
+    p_slug: slug,
     p_field: 'phone_click_count',
   });
 
@@ -572,9 +578,9 @@ export async function incrementPhoneClick(id: string): Promise<void> {
   }
 }
 
-export async function incrementWhatsAppClick(id: string): Promise<void> {
+export async function incrementWhatsAppClick(slug: string): Promise<void> {
   const { error } = await supabase.rpc('increment_raqi_counter', {
-    p_slug: id,
+    p_slug: slug,
     p_field: 'whatsapp_click_count',
   });
 

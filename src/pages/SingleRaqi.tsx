@@ -265,7 +265,7 @@ export default function SingleRaqi() {
                     target="_blank"
                     rel="noopener noreferrer"
                     onClick={() => {
-                      if (raqi?.id) incrementWhatsAppClick(raqi.id).catch(() => {});
+                      if (raqi?.slug) incrementWhatsAppClick(raqi.slug).catch(() => {});
                     }}
                     className="inline-flex items-center justify-center gap-2 min-h-14 rounded-2xl bg-gradient-to-br from-[#25d366] to-[#128c7e] text-white font-extrabold text-base shadow-lg shadow-[#25d366]/20 hover:-translate-y-0.5 transition-all"
                   >
@@ -278,7 +278,7 @@ export default function SingleRaqi() {
                   <a
                     href={`tel:${formatPhone(raqi.phone)}`}
                     onClick={() => {
-                      if (raqi?.id) incrementPhoneClick(raqi.id).catch(() => {});
+                      if (raqi?.slug) incrementPhoneClick(raqi.slug).catch(() => {});
                     }}
                     className="inline-flex items-center justify-center gap-2 min-h-14 rounded-2xl bg-white text-[#1f6f50] border border-[#cfe0d8] font-extrabold text-base hover:bg-gray-50 transition-all"
                   >
