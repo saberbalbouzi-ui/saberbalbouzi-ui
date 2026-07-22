@@ -31,6 +31,10 @@ type PublicRegisterInput = {
   address?: string;
   experience_years?: number;
   bio?: string;
+  facebook_url?: string;
+  youtube_url?: string;
+  instagram_url?: string;
+  tiktok_url?: string;
 };
 
 type AccountRegisterInput = PublicRegisterInput & {
@@ -101,6 +105,16 @@ export const mockWilayas: Wilaya[] = [
 
 function sanitizeText(value?: string): string {
   return value?.trim() || '';
+}
+
+function sanitizeUrl(value?: string): string | null {
+  const url = value?.trim() || '';
+  if (!url) return null;
+  // Vérifier que c'est une URL valide
+  if (!url.startsWith('http://') && !url.startsWith('https://')) {
+    return `https://${url}`;
+  }
+  return url;
 }
 
 function slugify(value: string): string {
@@ -235,6 +249,10 @@ export async function registerRaqi(raqi: PublicRegisterInput): Promise<void> {
     address: sanitizeText(raqi.address),
     experience_years: raqi.experience_years ?? 0,
     bio: sanitizeText(raqi.bio),
+    facebook_url: sanitizeUrl(raqi.facebook_url),
+    youtube_url: sanitizeUrl(raqi.youtube_url),
+    instagram_url: sanitizeUrl(raqi.instagram_url),
+    tiktok_url: sanitizeUrl(raqi.tiktok_url),
     status: 'pending',
     verified_badge: false,
   });
@@ -320,6 +338,10 @@ export async function registerRaqiWithAccount(
         address: sanitizeText(input.address) || existingRaqi.address,
         experience_years: input.experience_years ?? existingRaqi.experience_years ?? 0,
         bio: sanitizeText(input.bio) || existingRaqi.bio,
+        facebook_url: sanitizeUrl(input.facebook_url) || existingRaqi.facebook_url,
+        youtube_url: sanitizeUrl(input.youtube_url) || existingRaqi.youtube_url,
+        instagram_url: sanitizeUrl(input.instagram_url) || existingRaqi.instagram_url,
+        tiktok_url: sanitizeUrl(input.tiktok_url) || existingRaqi.tiktok_url,
         updated_at: new Date().toISOString(),
       })
       .eq('id', existingRaqi.id);
@@ -342,6 +364,10 @@ export async function registerRaqiWithAccount(
       address: sanitizeText(input.address),
       experience_years: input.experience_years ?? 0,
       bio: sanitizeText(input.bio),
+      facebook_url: sanitizeUrl(input.facebook_url),
+      youtube_url: sanitizeUrl(input.youtube_url),
+      instagram_url: sanitizeUrl(input.instagram_url),
+      tiktok_url: sanitizeUrl(input.tiktok_url),
       status: 'pending',
       verified_badge: false,
     });

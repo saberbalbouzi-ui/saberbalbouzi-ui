@@ -21,6 +21,11 @@ export interface Raqi {
   view_count?: number;
   phone_click_count?: number;
   whatsapp_click_count?: number;
+  // === LIENS SOCIAUX ===
+  facebook_url: string | null;
+  youtube_url: string | null;
+  instagram_url: string | null;
+  tiktok_url: string | null;
   status: 'pending' | 'approved' | 'rejected';
   created_at: string;
   updated_at: string;
@@ -38,6 +43,10 @@ export interface RaqiInsert {
   address?: string;
   experience_years?: number;
   bio?: string;
+  facebook_url?: string;
+  youtube_url?: string;
+  instagram_url?: string;
+  tiktok_url?: string;
   status?: 'pending';
 }
 

@@ -29,6 +29,11 @@ import {
   Eye,
   MessageCircle,
   Phone,
+  Facebook,
+  Youtube,
+  Instagram,
+  Music2,
+  ExternalLink,
 } from 'lucide-react';
 
 type StatusFilter = 'all' | 'pending' | 'approved' | 'rejected';
@@ -539,6 +544,62 @@ export default function Admin() {
                         {raqi.experience_years} سنة خبرة
                       </div>
                     )}
+
+                    {/* === LIENS SOCIAUX === */}
+                    <div className="flex flex-wrap gap-2 pt-1">
+                      {raqi.facebook_url && (
+                        <a
+                          href={raqi.facebook_url}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="inline-flex items-center gap-1 text-xs text-[#1877F2] font-bold bg-blue-50 px-2 py-1 rounded-lg hover:bg-blue-100 transition"
+                          onClick={(e) => e.stopPropagation()}
+                        >
+                          <Facebook className="w-3.5 h-3.5" />
+                          فيسبوك
+                          <ExternalLink className="w-3 h-3" />
+                        </a>
+                      )}
+                      {raqi.youtube_url && (
+                        <a
+                          href={raqi.youtube_url}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="inline-flex items-center gap-1 text-xs text-[#FF0000] font-bold bg-red-50 px-2 py-1 rounded-lg hover:bg-red-100 transition"
+                          onClick={(e) => e.stopPropagation()}
+                        >
+                          <Youtube className="w-3.5 h-3.5" />
+                          يوتيوب
+                          <ExternalLink className="w-3 h-3" />
+                        </a>
+                      )}
+                      {raqi.instagram_url && (
+                        <a
+                          href={raqi.instagram_url}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="inline-flex items-center gap-1 text-xs text-[#E4405F] font-bold bg-pink-50 px-2 py-1 rounded-lg hover:bg-pink-100 transition"
+                          onClick={(e) => e.stopPropagation()}
+                        >
+                          <Instagram className="w-3.5 h-3.5" />
+                          انستغرام
+                          <ExternalLink className="w-3 h-3" />
+                        </a>
+                      )}
+                      {raqi.tiktok_url && (
+                        <a
+                          href={raqi.tiktok_url}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="inline-flex items-center gap-1 text-xs text-gray-800 font-bold bg-gray-100 px-2 py-1 rounded-lg hover:bg-gray-200 transition"
+                          onClick={(e) => e.stopPropagation()}
+                        >
+                          <Music2 className="w-3.5 h-3.5" />
+                          تيك توك
+                          <ExternalLink className="w-3 h-3" />
+                        </a>
+                      )}
+                    </div>
 
                     {/* === COMPTEURS EN TEMPS RÉEL === */}
                     <div className="flex gap-3 pt-2 mt-2 border-t border-gray-50">

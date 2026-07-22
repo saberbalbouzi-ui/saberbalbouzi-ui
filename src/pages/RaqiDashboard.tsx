@@ -33,6 +33,12 @@ import {
   Home,
   Trash2,
   X,
+  Lock,
+  Facebook,
+  Youtube,
+  Instagram,
+  Music2,
+  Globe,
 } from 'lucide-react';
 
 export default function RaqiDashboard() {
@@ -74,6 +80,10 @@ export default function RaqiDashboard() {
     address: '',
     experience_years: '',
     bio: '',
+    facebook_url: '',
+    youtube_url: '',
+    instagram_url: '',
+    tiktok_url: '',
   });
 
   useEffect(() => {
@@ -165,6 +175,10 @@ export default function RaqiDashboard() {
             ? String(data.experience_years)
             : '',
         bio: data.bio || '',
+        facebook_url: data.facebook_url || '',
+        youtube_url: data.youtube_url || '',
+        instagram_url: data.instagram_url || '',
+        tiktok_url: data.tiktok_url || '',
       });
     } catch (err: any) {
       console.error('Load profile error:', err);
@@ -211,6 +225,10 @@ export default function RaqiDashboard() {
           ? Number(form.experience_years)
           : 0,
         bio: form.bio.trim() || null,
+        facebook_url: form.facebook_url.trim() || null,
+        youtube_url: form.youtube_url.trim() || null,
+        instagram_url: form.instagram_url.trim() || null,
+        tiktok_url: form.tiktok_url.trim() || null,
       });
 
       if (updated) {
@@ -276,6 +294,15 @@ export default function RaqiDashboard() {
       setDeleting(false);
     }
   };
+
+  // === VERROUILLAGE DES CHAMPS SOCIAUX ===
+  const isVerified = profile?.verified_badge ?? false;
+  const isFeatured = profile?.featured_badge ?? false;
+
+  // Champ Facebook: déverrouillé si verified
+  const facebookLocked = !isVerified;
+  // Champs YouTube, Instagram, TikTok: déverrouillés si featured
+  const featuredLocked = !isFeatured;
 
   if (sessionLoading) {
     return (
@@ -390,13 +417,13 @@ export default function RaqiDashboard() {
               <Card className="rounded-2xl border-0 shadow-sm p-4">
                 <div className="flex items-center justify-between">
                   <div>
-                    <p className="text-sm text-gray-500 font-semibold">الرابط</p>
-                    <p className="text-sm font-extrabold text-gray-900 mt-1 break-all">
-                      /roqat/{profile?.slug}
+                    <p className="text-sm text-gray-500 font-semibold">التمييز</p>
+                    <p className="text-xl font-extrabold text-gray-900 mt-1">
+                      {profile?.featured_badge ? 'متميز' : 'غير متميز'}
                     </p>
                   </div>
-                  <div className="w-11 h-11 rounded-xl bg-blue-100 text-blue-700 flex items-center justify-center">
-                    <MapPin className="w-5 h-5" />
+                  <div className="w-11 h-11 rounded-xl bg-amber-100 text-amber-700 flex items-center justify-center">
+                    <Award className="w-5 h-5" />
                   </div>
                 </div>
               </Card>
@@ -603,6 +630,127 @@ export default function RaqiDashboard() {
                   rows={6}
                   className="w-full rounded-2xl border border-gray-200 px-4 py-3 text-base text-gray-800 focus:outline-none focus:ring-2 focus:ring-[#1f6f50] focus:border-transparent resize-none"
                 />
+              </div>
+
+              {/* === LIENS SOCIAUX === */}
+              <div className="mt-8 pt-6 border-t border-gray-100">
+                <div className="flex items-center gap-2 mb-4">
+                  <Globe className="w-5 h-5 text-[#1f6f50]" />
+                  <h3 className="text-lg font-extrabold text-gray-900">حسابات التواصل الاجتماعي</h3>
+                </div>
+
+                <p className="text-sm text-gray-500 mb-4">
+                  🔵 فيسبوك: متاح عند الحصول على شارة{' '}
+                  <span className="font-bold text-amber-600">التوثيق</span>
+                  {' '}🔒 يوتيوب / انستغرام / تيك توك: متاح عند الحصول على شارة{' '}
+                  <span className="font-bold text-amber-600">التمييز</span>
+                </p>
+
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  {/* Facebook — déverrouillé si verified */}
+                  <div className="space-y-2">
+                    <label className="text-sm font-bold text-gray-700 flex items-center gap-2">
+                      <Facebook className="w-4 h-4 text-[#1877F2]" />
+                      فيسبوك
+                      {facebookLocked && (
+                        <span className="inline-flex items-center gap-1 text-xs text-amber-600 bg-amber-50 px-2 py-0.5 rounded-full">
+                          <Lock className="w-3 h-3" />
+                          يتطلب التوثيق
+                        </span>
+                      )}
+                    </label>
+                    <div className="relative">
+                      <Input
+                        value={form.facebook_url}
+                        onChange={(e) => handleChange('facebook_url', e.target.value)}
+                        placeholder={facebookLocked ? 'متاح بعد التوثيق' : 'https://facebook.com/...'}
+                        disabled={facebookLocked}
+                        className={`h-12 rounded-xl ${facebookLocked ? 'bg-gray-100 text-gray-400 cursor-not-allowed' : ''}`}
+                      />
+                      {facebookLocked && (
+                        <Lock className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
+                      )}
+                    </div>
+                  </div>
+
+                  {/* YouTube — déverrouillé si featured */}
+                  <div className="space-y-2">
+                    <label className="text-sm font-bold text-gray-700 flex items-center gap-2">
+                      <Youtube className="w-4 h-4 text-[#FF0000]" />
+                      يوتيوب
+                      {featuredLocked && (
+                        <span className="inline-flex items-center gap-1 text-xs text-amber-600 bg-amber-50 px-2 py-0.5 rounded-full">
+                          <Lock className="w-3 h-3" />
+                          يتطلب التمييز
+                        </span>
+                      )}
+                    </label>
+                    <div className="relative">
+                      <Input
+                        value={form.youtube_url}
+                        onChange={(e) => handleChange('youtube_url', e.target.value)}
+                        placeholder={featuredLocked ? 'متاح بعد التمييز' : 'https://youtube.com/...'}
+                        disabled={featuredLocked}
+                        className={`h-12 rounded-xl ${featuredLocked ? 'bg-gray-100 text-gray-400 cursor-not-allowed' : ''}`}
+                      />
+                      {featuredLocked && (
+                        <Lock className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
+                      )}
+                    </div>
+                  </div>
+
+                  {/* Instagram — déverrouillé si featured */}
+                  <div className="space-y-2">
+                    <label className="text-sm font-bold text-gray-700 flex items-center gap-2">
+                      <Instagram className="w-4 h-4 text-[#E4405F]" />
+                      انستغرام
+                      {featuredLocked && (
+                        <span className="inline-flex items-center gap-1 text-xs text-amber-600 bg-amber-50 px-2 py-0.5 rounded-full">
+                          <Lock className="w-3 h-3" />
+                          يتطلب التمييز
+                        </span>
+                      )}
+                    </label>
+                    <div className="relative">
+                      <Input
+                        value={form.instagram_url}
+                        onChange={(e) => handleChange('instagram_url', e.target.value)}
+                        placeholder={featuredLocked ? 'متاح بعد التمييز' : 'https://instagram.com/...'}
+                        disabled={featuredLocked}
+                        className={`h-12 rounded-xl ${featuredLocked ? 'bg-gray-100 text-gray-400 cursor-not-allowed' : ''}`}
+                      />
+                      {featuredLocked && (
+                        <Lock className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
+                      )}
+                    </div>
+                  </div>
+
+                  {/* TikTok — déverrouillé si featured */}
+                  <div className="space-y-2">
+                    <label className="text-sm font-bold text-gray-700 flex items-center gap-2">
+                      <Music2 className="w-4 h-4 text-black" />
+                      تيك توك
+                      {featuredLocked && (
+                        <span className="inline-flex items-center gap-1 text-xs text-amber-600 bg-amber-50 px-2 py-0.5 rounded-full">
+                          <Lock className="w-3 h-3" />
+                          يتطلب التمييز
+                        </span>
+                      )}
+                    </label>
+                    <div className="relative">
+                      <Input
+                        value={form.tiktok_url}
+                        onChange={(e) => handleChange('tiktok_url', e.target.value)}
+                        placeholder={featuredLocked ? 'متاح بعد التمييز' : 'https://tiktok.com/@...'}
+                        disabled={featuredLocked}
+                        className={`h-12 rounded-xl ${featuredLocked ? 'bg-gray-100 text-gray-400 cursor-not-allowed' : ''}`}
+                      />
+                      {featuredLocked && (
+                        <Lock className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
+                      )}
+                    </div>
+                  </div>
+                </div>
               </div>
 
               <div className="mt-6 flex flex-wrap gap-3">
