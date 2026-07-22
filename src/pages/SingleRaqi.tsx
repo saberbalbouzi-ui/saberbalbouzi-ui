@@ -5,6 +5,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
 import { getRaqiBySlug, getReviews, addReview, mockWilayas, incrementViewCount, incrementPhoneClick, incrementWhatsAppClick } from '@/lib/supabase';
+import { useRealtimeCounters } from '@/hooks/useRealtimeCounters';
 import type { Raqi, Review } from '@/types';
 import {
   Award,
@@ -35,6 +36,16 @@ export default function SingleRaqi() {
   const [submitting, setSubmitting] = useState(false);
   const [showForm, setShowForm] = useState(false);
   const [submitted, setSubmitted] = useState(false);
+
+  // === COMPTEURS EN TEMPS RÉEL ===
+  const { view_count, phone_click_count, whatsapp_click_count, isLive } = useRealtimeCounters(
+    raqi?.id,
+    {
+      view_count: raqi?.view_count,
+      phone_click_count: raqi?.phone_click_count,
+      whatsapp_click_count: raqi?.whatsapp_click_count,
+    }
+  );
 
   useEffect(() => {
     const load = async () => {
@@ -200,19 +211,22 @@ export default function SingleRaqi() {
                 </div>
               )}
 
-              {/* Compteurs */}
+              {/* === COMPTEURS EN TEMPS RÉEL === */}
               <div className="flex items-center gap-4 mt-2">
                 <div className="flex items-center gap-1.5 text-sm text-purple-600 font-bold bg-purple-50 px-3 py-1.5 rounded-full">
                   <Eye className="w-4 h-4" />
-                  <span>{raqi.view_count || 0} زيارة</span>
+                  <span>{view_count.toLocaleString('ar-DZ')} زيارة</span>
+                  {isLive && (
+                    <span className="w-2 h-2 rounded-full bg-green-400 animate-pulse" title="مباشر" />
+                  )}
                 </div>
                 <div className="flex items-center gap-1.5 text-sm text-indigo-600 font-bold bg-indigo-50 px-3 py-1.5 rounded-full">
                   <Phone className="w-4 h-4" />
-                  <span>{raqi.phone_click_count || 0} اتصال</span>
+                  <span>{phone_click_count.toLocaleString('ar-DZ')} اتصال</span>
                 </div>
                 <div className="flex items-center gap-1.5 text-sm text-emerald-600 font-bold bg-emerald-50 px-3 py-1.5 rounded-full">
                   <MessageCircle className="w-4 h-4" />
-                  <span>{raqi.whatsapp_click_count || 0} واتساب</span>
+                  <span>{whatsapp_click_count.toLocaleString('ar-DZ')} واتساب</span>
                 </div>
               </div>
 

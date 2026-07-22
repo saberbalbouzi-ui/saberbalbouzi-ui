@@ -33,6 +33,44 @@ import {
 
 type StatusFilter = 'all' | 'pending' | 'approved' | 'rejected';
 
+// === HOOK TEMPS RÉEL POUR L'ADMIN ===
+function useRealtimeAdminCounters(raqis: Raqi[]) {
+  const [liveUpdates, setLiveUpdates] = useState<Record<string, Partial<Raqi>>>({});
+
+  useEffect(() => {
+    if (raqis.length === 0) return;
+
+    const channel = supabase
+      .channel('admin-raqis-all')
+      .on(
+        'postgres_changes',
+        {
+          event: 'UPDATE',
+          schema: 'public',
+          table: 'raqis',
+        },
+        (payload) => {
+          const updated = payload.new as Raqi;
+          setLiveUpdates((prev) => ({
+            ...prev,
+            [updated.id]: {
+              view_count: updated.view_count,
+              phone_click_count: updated.phone_click_count,
+              whatsapp_click_count: updated.whatsapp_click_count,
+            },
+          }));
+        }
+      )
+      .subscribe();
+
+    return () => {
+      supabase.removeChannel(channel);
+    };
+  }, [raqis.length > 0 ? 'subscribed' : '']);
+
+  return liveUpdates;
+}
+
 export default function Admin() {
   const [isLoggedIn, setIsLoggedIn] = useState(false);
   const [sessionLoading, setSessionLoading] = useState(true);
@@ -43,6 +81,9 @@ export default function Admin() {
   const [loading, setLoading] = useState(false);
   const [statusFilter, setStatusFilter] = useState<StatusFilter>('all');
   const [searchQuery, setSearchQuery] = useState('');
+
+  // === COMPTEURS EN TEMPS RÉEL ===
+  const liveUpdates = useRealtimeAdminCounters(raqis);
 
   const loadRaqis = async () => {
     setLoading(true);
@@ -188,26 +229,21 @@ export default function Admin() {
     );
   });
 
-  const stats: {
-    total: number;
-    pending: number;
-    approved: number;
-    rejected: number;
-    verified: number;
-    featured: number;
-    totalViews: number;
-    totalPhone: number;
-    totalWhatsApp: number;
-  } = {
+  // === STATS AVEC DONNÉES TEMPS RÉEL ===
+  const getLiveValue = (raqi: Raqi, key: keyof Raqi) => {
+    return (liveUpdates[raqi.id]?.[key] as number) ?? (raqi[key] as number) ?? 0;
+  };
+
+  const stats = {
     total: raqis.length,
     pending: raqis.filter((r) => r.status === 'pending').length,
     approved: raqis.filter((r) => r.status === 'approved').length,
     rejected: raqis.filter((r) => r.status === 'rejected').length,
     verified: raqis.filter((r) => r.verified_badge).length,
     featured: raqis.filter((r: any) => r.featured_badge).length,
-    totalViews: raqis.reduce((sum: number, r: any) => sum + (r.view_count || 0), 0),
-    totalPhone: raqis.reduce((sum: number, r: any) => sum + (r.phone_click_count || 0), 0),
-    totalWhatsApp: raqis.reduce((sum: number, r: any) => sum + (r.whatsapp_click_count || 0), 0),
+    totalViews: raqis.reduce((sum, r) => sum + getLiveValue(r, 'view_count'), 0),
+    totalPhone: raqis.reduce((sum, r) => sum + getLiveValue(r, 'phone_click_count'), 0),
+    totalWhatsApp: raqis.reduce((sum, r) => sum + getLiveValue(r, 'whatsapp_click_count'), 0),
   };
 
   if (sessionLoading) {
@@ -388,7 +424,7 @@ export default function Admin() {
                     <Icon className="w-5 h-5" />
                   </div>
                   <span className="text-2xl font-extrabold text-gray-900">
-                    {s.value}
+                    {s.value.toLocaleString('ar-DZ')}
                   </span>
                 </div>
 
@@ -504,19 +540,19 @@ export default function Admin() {
                       </div>
                     )}
 
-                    {/* Compteurs */}
+                    {/* === COMPTEURS EN TEMPS RÉEL === */}
                     <div className="flex gap-3 pt-2 mt-2 border-t border-gray-50">
                       <div className="flex items-center gap-1 text-xs text-purple-600 font-bold">
                         <Eye className="w-3.5 h-3.5" />
-                        {raqi.view_count || 0}
+                        {getLiveValue(raqi, 'view_count')}
                       </div>
                       <div className="flex items-center gap-1 text-xs text-indigo-600 font-bold">
                         <Phone className="w-3.5 h-3.5" />
-                        {raqi.phone_click_count || 0}
+                        {getLiveValue(raqi, 'phone_click_count')}
                       </div>
                       <div className="flex items-center gap-1 text-xs text-emerald-600 font-bold">
                         <MessageCircle className="w-3.5 h-3.5" />
-                        {raqi.whatsapp_click_count || 0}
+                        {getLiveValue(raqi, 'whatsapp_click_count')}
                       </div>
                     </div>
                   </div>

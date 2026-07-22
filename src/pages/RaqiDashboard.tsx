@@ -14,6 +14,7 @@ import {
   supabase,
   updateCurrentRaqiProfile,
 } from '@/lib/supabase';
+import { useRealtimeCounters } from '@/hooks/useRealtimeCounters';
 import type { Raqi } from '@/types';
 import {
   Shield,
@@ -45,12 +46,18 @@ export default function RaqiDashboard() {
   const [error, setError] = useState('');
   const [success, setSuccess] = useState('');
 
-  // Compteurs
+  // Compteurs initiaux depuis l'API
   const [stats, setStats] = useState({
     view_count: 0,
     phone_click_count: 0,
     whatsapp_click_count: 0,
   });
+
+  // === COMPTEURS EN TEMPS RÉEL ===
+  const { view_count, phone_click_count, whatsapp_click_count } = useRealtimeCounters(
+    profile?.id,
+    stats
+  );
 
   // حذف الحساب
   const [showDeleteModal, setShowDeleteModal] = useState(false);
@@ -69,13 +76,11 @@ export default function RaqiDashboard() {
     bio: '',
   });
 
-  // CORRECTION: Vérifier la session et charger le profil
   useEffect(() => {
     let mounted = true;
 
     const checkSessionAndLoad = async () => {
       try {
-        // CORRECTION: Utiliser getSession() pour vérifier la session locale
         const { data: { session }, error: sessionError } = await supabase.auth.getSession();
 
         if (sessionError) {
@@ -88,7 +93,6 @@ export default function RaqiDashboard() {
         }
 
         if (!session) {
-          // Pas de session active, rediriger vers login
           if (mounted) {
             setSessionLoading(false);
             navigate('/raqi-login', { replace: true });
@@ -96,7 +100,6 @@ export default function RaqiDashboard() {
           return;
         }
 
-        // Session active, charger le profil
         if (mounted) {
           await loadProfile();
           setSessionLoading(false);
@@ -112,7 +115,6 @@ export default function RaqiDashboard() {
 
     checkSessionAndLoad();
 
-    // CORRECTION: Écouter les changements d'état d'authentification
     const { data: { subscription } } = supabase.auth.onAuthStateChange((event, session) => {
       console.log('Auth state changed:', event, session ? 'has session' : 'no session');
 
@@ -143,7 +145,6 @@ export default function RaqiDashboard() {
 
       setProfile(data);
 
-      // Charger les compteurs
       try {
         const statsData = await getRaqiStats(data.id);
         setStats(statsData);
@@ -228,8 +229,6 @@ export default function RaqiDashboard() {
   const handleLogout = async () => {
     try {
       await signOutRaqi();
-      // CORRECTION: La redirection est gérée par onAuthStateChange
-      // mais on force aussi ici pour être sûr
       navigate('/raqi-login', { replace: true });
     } catch (err: any) {
       console.error('Logout error:', err);
@@ -237,7 +236,6 @@ export default function RaqiDashboard() {
     }
   };
 
-  // حذف الحساب نهائياً
   const handleDeleteAccount = async () => {
     if (deleteConfirmText.trim() !== 'حذف') {
       setError('يجب كتابة "حذف" للتأكيد');
@@ -255,7 +253,6 @@ export default function RaqiDashboard() {
         throw new Error('لم يتم العثور على ملف الراقي');
       }
 
-      // حذف من جدول raqis
       const { error: deleteRaqiError } = await supabase
         .from('raqis')
         .delete()
@@ -265,15 +262,12 @@ export default function RaqiDashboard() {
         throw new Error(deleteRaqiError.message || 'فشل حذف ملف الراقي');
       }
 
-      // حذف المستخدم من Auth
       const { error: deleteUserError } = await supabase.rpc('delete_user');
 
       if (deleteUserError) {
         console.warn('Auth delete warning:', deleteUserError);
-        // نستمر حتى لو فشل حذف الـ Auth
       }
 
-      // تسجيل الخروج
       await signOutRaqi();
       navigate('/', { replace: true });
     } catch (err: any) {
@@ -348,7 +342,6 @@ export default function RaqiDashboard() {
       </div>
 
       <div className="max-w-5xl mx-auto px-4 py-8">
-        {/* CORRECTION: Afficher un message si le profil n'est pas trouvé */}
         {!profile && error && (
           <div className="mb-6 rounded-2xl border border-red-200 bg-red-50 p-6 text-center">
             <AlertTriangle className="w-10 h-10 text-red-500 mx-auto mb-3" />
@@ -408,13 +401,13 @@ export default function RaqiDashboard() {
                 </div>
               </Card>
 
-              {/* Compteurs */}
+              {/* === COMPTEURS EN TEMPS RÉEL === */}
               <Card className="rounded-2xl border-0 shadow-sm p-4">
                 <div className="flex items-center justify-between">
                   <div>
                     <p className="text-sm text-gray-500 font-semibold">الزيارات</p>
                     <p className="text-xl font-extrabold text-gray-900 mt-1">
-                      {stats.view_count.toLocaleString('ar-DZ')}
+                      {view_count.toLocaleString('ar-DZ')}
                     </p>
                   </div>
                   <div className="w-11 h-11 rounded-xl bg-purple-100 text-purple-700 flex items-center justify-center">
@@ -428,7 +421,7 @@ export default function RaqiDashboard() {
                   <div>
                     <p className="text-sm text-gray-500 font-semibold">اتصالات الهاتف</p>
                     <p className="text-xl font-extrabold text-gray-900 mt-1">
-                      {stats.phone_click_count.toLocaleString('ar-DZ')}
+                      {phone_click_count.toLocaleString('ar-DZ')}
                     </p>
                   </div>
                   <div className="w-11 h-11 rounded-xl bg-indigo-100 text-indigo-700 flex items-center justify-center">
@@ -442,7 +435,7 @@ export default function RaqiDashboard() {
                   <div>
                     <p className="text-sm text-gray-500 font-semibold">تواصل واتساب</p>
                     <p className="text-xl font-extrabold text-gray-900 mt-1">
-                      {stats.whatsapp_click_count.toLocaleString('ar-DZ')}
+                      {whatsapp_click_count.toLocaleString('ar-DZ')}
                     </p>
                   </div>
                   <div className="w-11 h-11 rounded-xl bg-emerald-100 text-emerald-700 flex items-center justify-center">
@@ -641,7 +634,6 @@ export default function RaqiDashboard() {
                 </Button>
               </div>
 
-              {/* زر حذف الحساب */}
               <div className="mt-8 pt-6 border-t border-red-100">
                 <Button
                   type="button"
@@ -662,7 +654,6 @@ export default function RaqiDashboard() {
         )}
       </div>
 
-      {/* نافذة تأكيد حذف الحساب */}
       {showDeleteModal && (
         <div className="fixed inset-0 z-50 flex items-center justify-center px-4">
           <div
