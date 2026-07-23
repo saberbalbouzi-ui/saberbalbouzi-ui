@@ -3,6 +3,7 @@ import { Link, useNavigate } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
 import { getRaqis, mockWilayas } from '@/lib/supabase';
+import { getActiveCountries, getCountryByCode } from '@/lib/countries';
 import { azkarCategories, duaaAnbiya } from '@/data/azkar';
 import type { ZekrCategory } from '@/data/azkar';
 import type { Raqi } from '@/types';
@@ -25,6 +26,7 @@ import {
   MapPin,
   Loader2,
   Home as HomeIcon,
+  Globe,
 } from 'lucide-react';
 
 const iconMap: Record<string, React.ElementType> = {
@@ -38,6 +40,71 @@ const iconMap: Record<string, React.ElementType> = {
   Heart,
   Hand,
   BookOpen,
+};
+
+// ============================================================
+// WILAYAS PAR PAYS — déclaré UNE SEULE FOIS au niveau global
+// ============================================================
+const wilayasByCountry: Record<string, { code: string; name_ar: string }[]> = {
+  DZ: mockWilayas.map((w) => ({ code: w.code, name_ar: w.name_ar })),
+  MA: [
+    { code: '01', name_ar: 'طنجة-تطوان-الحسيمة' },
+    { code: '02', name_ar: 'الشرق' },
+    { code: '03', name_ar: 'فاس-مكناس' },
+    { code: '04', name_ar: 'الرباط-سلا-القنيطرة' },
+    { code: '05', name_ar: 'بني ملال-خنيفرة' },
+    { code: '06', name_ar: 'الدار البيضاء-سطات' },
+    { code: '07', name_ar: 'مراكش-آسفي' },
+    { code: '08', name_ar: 'درعة-تافيلالت' },
+    { code: '09', name_ar: 'سوس-ماسة' },
+    { code: '10', name_ar: 'كلميم-واد نون' },
+    { code: '11', name_ar: 'العيون-الساقية الحمراء' },
+    { code: '12', name_ar: 'الداخلة-وادي الذهب' },
+  ],
+  TN: [
+    { code: '11', name_ar: 'تونس' },
+    { code: '12', name_ar: 'أريانة' },
+    { code: '13', name_ar: 'منوبة' },
+    { code: '14', name_ar: 'بن عروس' },
+    { code: '21', name_ar: 'نابل' },
+    { code: '22', name_ar: 'زغوان' },
+    { code: '23', name_ar: 'بنزرت' },
+    { code: '31', name_ar: 'باجة' },
+    { code: '32', name_ar: 'جندوبة' },
+    { code: '33', name_ar: 'الكاف' },
+    { code: '34', name_ar: 'سليانة' },
+    { code: '41', name_ar: 'القيروان' },
+    { code: '42', name_ar: 'القصرين' },
+    { code: '43', name_ar: 'سيدي بوزيد' },
+    { code: '51', name_ar: 'سوسة' },
+    { code: '52', name_ar: 'المنستير' },
+    { code: '53', name_ar: 'المهدية' },
+    { code: '61', name_ar: 'صفاقس' },
+    { code: '71', name_ar: 'قابس' },
+    { code: '72', name_ar: 'مدنين' },
+    { code: '73', name_ar: 'تطاوين' },
+    { code: '81', name_ar: 'قفصة' },
+    { code: '82', name_ar: 'توزر' },
+    { code: '83', name_ar: 'قبلي' },
+  ],
+  FR: [
+    { code: '75', name_ar: 'باريس' },
+    { code: '13', name_ar: 'مارسيليا' },
+    { code: '69', name_ar: 'ليون' },
+    { code: '31', name_ar: 'تولوز' },
+    { code: '33', name_ar: 'بوردو' },
+    { code: '59', name_ar: 'ليل' },
+    { code: '44', name_ar: 'نانت' },
+    { code: '67', name_ar: 'ستراسبورغ' },
+    { code: '34', name_ar: 'مونبلييه' },
+    { code: '06', name_ar: 'نيس' },
+  ],
+};
+
+const getWilayaName = (code: string | null, countryCode: string = 'DZ') => {
+  if (!code) return '';
+  const wilayas = wilayasByCountry[countryCode] || wilayasByCountry['DZ'] || [];
+  return wilayas.find((w) => w.code === code)?.name_ar || code;
 };
 
 // Azkar Section Component
@@ -280,7 +347,7 @@ function HeroSection() {
         </h1>
 
         <p className="text-white/90 text-lg md:text-xl lg:text-2xl leading-relaxed mb-10 max-w-3xl mx-auto">
-          منصة متخصصة تجمع الرقاة الشرعيين المعتمدين في جميع ولايات الجزائر.
+          منصة متخصصة تجمع الرقاة الشرعيين المعتمدين في جميع الدول.
           <br />
           رقية شرعية على وفق الكتاب والسنة بفهم سلف الأمة.
         </p>
@@ -320,7 +387,7 @@ function HeroSection() {
   );
 }
 
-// Featured Raqis Section
+// Featured Raqis Section — من جميع الدول
 function FeaturedRaqisSection() {
   const [featuredRaqis, setFeaturedRaqis] = useState<(Raqi & { featured_badge?: boolean })[]>([]);
   const [loading, setLoading] = useState(true);
@@ -332,7 +399,7 @@ function FeaturedRaqisSection() {
         const data = await getRaqis();
         const featured = (Array.isArray(data) ? data : [])
           .filter((raqi: any) => raqi.featured_badge)
-          .slice(0, 6);
+          .slice(0, 12);
 
         setFeaturedRaqis(featured);
       } catch (error) {
@@ -413,9 +480,19 @@ function FeaturedRaqisSection() {
                     )}
 
                     <div className="flex items-center gap-2 text-gray-600">
+                      <Globe className="w-4 h-4 text-[#1f6f50] shrink-0" />
+                      <span>
+                        {(() => {
+                          const c = getCountryByCode(raqi.country_code);
+                          return c ? `${c.flag_emoji} ${c.name_ar}` : raqi.country_code;
+                        })()}
+                      </span>
+                    </div>
+
+                    <div className="flex items-center gap-2 text-gray-600">
                       <MapPin className="w-4 h-4 text-[#1f6f50] shrink-0" />
                       <span>
-                        {mockWilayas.find((w) => w.code === raqi.wilaya)?.name_ar || raqi.wilaya}
+                        {getWilayaName(raqi.wilaya, raqi.country_code)}
                       </span>
                     </div>
 
@@ -445,52 +522,82 @@ function FeaturedRaqisSection() {
   );
 }
 
-// Search Section Component
+// Search Section Component — AVEC PAYS + WILAYA DYNAMIQUES
 function SearchSection() {
   const navigate = useNavigate();
+  const [selectedCountry, setSelectedCountry] = useState('DZ');
   const [selectedWilaya, setSelectedWilaya] = useState('');
 
+  const activeCountries = getActiveCountries();
+  const currentWilayas = wilayasByCountry[selectedCountry] || wilayasByCountry['DZ'] || [];
+
+  const handleCountryChange = (code: string) => {
+    setSelectedCountry(code);
+    setSelectedWilaya('');
+  };
+
   const handleSearch = () => {
-    if (selectedWilaya) {
-      navigate(`/roqat?wilaya=${selectedWilaya}`);
-    } else {
-      navigate('/roqat');
-    }
+    const params = new URLSearchParams();
+    if (selectedWilaya) params.set('wilaya', selectedWilaya);
+    navigate(`/roqat?${params.toString()}`);
   };
 
   return (
     <section className="bg-[#0b5a35] py-12 px-4">
       <div className="max-w-3xl mx-auto">
         <p className="text-center text-white text-lg font-semibold mb-8">
-          يرجى اختيار الولاية لعرض النتائج.
+          يرجى اختيار الدولة والولاية لعرض النتائج.
         </p>
 
         <Card className="p-6 rounded-2xl border-0 shadow-xl bg-white">
           <div className="space-y-4">
-            <label className="block text-gray-700 font-bold text-sm">الولاية</label>
+            {/* Ligne 1: الدولة */}
+            <div>
+              <label className="block text-gray-700 font-bold text-sm mb-2">
+                <Globe className="w-4 h-4 inline-block ml-1" />
+                الدولة
+              </label>
+              <select
+                value={selectedCountry}
+                onChange={(e) => handleCountryChange(e.target.value)}
+                className="w-full h-12 px-4 border border-gray-200 rounded-xl text-base bg-white text-gray-800 focus:outline-none focus:ring-2 focus:ring-[#1f6f50] focus:border-transparent"
+              >
+                {activeCountries.map((c) => (
+                  <option key={c.code} value={c.code}>
+                    {c.flag_emoji} {c.name_ar}
+                  </option>
+                ))}
+              </select>
+            </div>
 
-            <div className="flex flex-col sm:flex-row gap-3">
+            {/* Ligne 2: الولاية */}
+            <div>
+              <label className="block text-gray-700 font-bold text-sm mb-2">
+                <MapPin className="w-4 h-4 inline-block ml-1" />
+                الولاية
+              </label>
               <select
                 value={selectedWilaya}
                 onChange={(e) => setSelectedWilaya(e.target.value)}
-                className="flex-1 h-12 px-4 border border-gray-200 rounded-xl text-base bg-white text-gray-800 focus:outline-none focus:ring-2 focus:ring-[#1f6f50] focus:border-transparent"
+                className="w-full h-12 px-4 border border-gray-200 rounded-xl text-base bg-white text-gray-800 focus:outline-none focus:ring-2 focus:ring-[#1f6f50] focus:border-transparent"
               >
                 <option value="">اختر الولاية</option>
-                {mockWilayas.map((w) => (
+                {currentWilayas.map((w) => (
                   <option key={w.code} value={w.code}>
                     {w.name_ar}
                   </option>
                 ))}
               </select>
-
-              <Button
-                onClick={handleSearch}
-                className="h-12 px-8 bg-gradient-to-br from-[#1f6f50] to-[#15523b] hover:from-[#18593f] text-white font-bold rounded-xl shadow-lg transition-all hover:-translate-y-0.5"
-              >
-                <Search className="w-4 h-4 mr-2" />
-                بحث
-              </Button>
             </div>
+
+            {/* Bouton بحث */}
+            <Button
+              onClick={handleSearch}
+              className="w-full h-12 bg-gradient-to-br from-[#1f6f50] to-[#15523b] hover:from-[#18593f] text-white font-bold rounded-xl shadow-lg transition-all hover:-translate-y-0.5"
+            >
+              <Search className="w-4 h-4 mr-2" />
+              بحث
+            </Button>
           </div>
         </Card>
       </div>
@@ -522,13 +629,13 @@ function CTASection() {
             سجل في الدليل
           </Button>
 
-        <Button
-  onClick={() => navigate('/raqi-login')}
-  variant="outline"
-  className="border-white text-white bg-transparent hover:bg-white/10 text-lg font-extrabold px-10 py-6 rounded-xl transition-all min-w-[250px]"
->
-  دخول الراقي
-</Button>
+          <Button
+            onClick={() => navigate('/raqi-login')}
+            variant="outline"
+            className="border-white text-white bg-transparent hover:bg-white/10 text-lg font-extrabold px-10 py-6 rounded-xl transition-all min-w-[250px]"
+          >
+            دخول الراقي
+          </Button>
         </div>
       </div>
     </section>

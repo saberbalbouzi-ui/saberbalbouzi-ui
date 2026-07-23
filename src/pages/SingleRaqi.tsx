@@ -7,6 +7,7 @@ import { Textarea } from '@/components/ui/textarea';
 import { getRaqiBySlug, getReviews, addReview, mockWilayas, incrementViewCount, incrementPhoneClick, incrementWhatsAppClick } from '@/lib/supabase';
 import { useRealtimeCounters } from '@/hooks/useRealtimeCounters';
 import type { Raqi, Review } from '@/types';
+import { getCountryByCode } from '@/lib/countries';
 import {
   Award,
   Phone,
@@ -20,6 +21,8 @@ import {
   User,
   Eye,
   ExternalLink,
+  Globe,
+  MapPin,
 } from 'lucide-react';
 
 // === ICÔNES SOCIAUX (SVG inline) ===
@@ -133,10 +136,70 @@ export default function SingleRaqi() {
     }
   };
 
-  const getWilayaName = (code: string) => {
-    return mockWilayas.find(w => w.code === code)?.name_ar || code;
-  };
+  // ============================================================
+// WILAYAS PAR PAYS (temporaire — à remplacer par API Supabase)
+// ============================================================
+const wilayasByCountry: Record<string, { code: string; name_ar: string }[]> = {
+  DZ: mockWilayas.map((w) => ({ code: w.code, name_ar: w.name_ar })),
+  MA: [
+    { code: '01', name_ar: 'طنجة-تطوان-الحسيمة' },
+    { code: '02', name_ar: 'الشرق' },
+    { code: '03', name_ar: 'فاس-مكناس' },
+    { code: '04', name_ar: 'الرباط-سلا-القنيطرة' },
+    { code: '05', name_ar: 'بني ملال-خنيفرة' },
+    { code: '06', name_ar: 'الدار البيضاء-سطات' },
+    { code: '07', name_ar: 'مراكش-آسفي' },
+    { code: '08', name_ar: 'درعة-تافيلالت' },
+    { code: '09', name_ar: 'سوس-ماسة' },
+    { code: '10', name_ar: 'كلميم-واد نون' },
+    { code: '11', name_ar: 'العيون-الساقية الحمراء' },
+    { code: '12', name_ar: 'الداخلة-وادي الذهب' },
+  ],
+  TN: [
+    { code: '11', name_ar: 'تونس' },
+    { code: '12', name_ar: 'أريانة' },
+    { code: '13', name_ar: 'منوبة' },
+    { code: '14', name_ar: 'بن عروس' },
+    { code: '21', name_ar: 'نابل' },
+    { code: '22', name_ar: 'زغوان' },
+    { code: '23', name_ar: 'بنزرت' },
+    { code: '31', name_ar: 'باجة' },
+    { code: '32', name_ar: 'جندوبة' },
+    { code: '33', name_ar: 'الكاف' },
+    { code: '34', name_ar: 'سليانة' },
+    { code: '41', name_ar: 'القيروان' },
+    { code: '42', name_ar: 'القصرين' },
+    { code: '43', name_ar: 'سيدي بوزيد' },
+    { code: '51', name_ar: 'سوسة' },
+    { code: '52', name_ar: 'المنستير' },
+    { code: '53', name_ar: 'المهدية' },
+    { code: '61', name_ar: 'صفاقس' },
+    { code: '71', name_ar: 'قابس' },
+    { code: '72', name_ar: 'مدنين' },
+    { code: '73', name_ar: 'تطاوين' },
+    { code: '81', name_ar: 'قفصة' },
+    { code: '82', name_ar: 'توزر' },
+    { code: '83', name_ar: 'قبلي' },
+  ],
+  FR: [
+    { code: '75', name_ar: 'باريس' },
+    { code: '13', name_ar: 'مارسيليا' },
+    { code: '69', name_ar: 'ليون' },
+    { code: '31', name_ar: 'تولوز' },
+    { code: '33', name_ar: 'بوردو' },
+    { code: '59', name_ar: 'ليل' },
+    { code: '44', name_ar: 'نانت' },
+    { code: '67', name_ar: 'ستراسبورغ' },
+    { code: '34', name_ar: 'مونبلييه' },
+    { code: '06', name_ar: 'نيس' },
+  ],
+};
 
+const getWilayaName = (code: string | null, countryCode: string = 'DZ') => {
+  if (!code) return '';
+  const wilayas = wilayasByCountry[countryCode] || wilayasByCountry['DZ'] || [];
+  return wilayas.find((w) => w.code === code)?.name_ar || code;
+};
   const formatPhone = (phone: string | null) => {
     if (!phone) return '';
     return phone.replace(/\D/g, '');
@@ -307,8 +370,24 @@ export default function SingleRaqi() {
                 )}
 
                 <div className="flex justify-between items-start gap-4 py-4">
-                  <strong className="text-[#163a2b] font-extrabold shrink-0">الولاية</strong>
-                  <span className="text-gray-700">{getWilayaName(raqi.wilaya)}</span>
+                  <strong className="text-[#163a2b] font-extrabold shrink-0 flex items-center gap-2">
+                    <Globe className="w-4 h-4 text-[#1f6f50]" />
+                    الدولة
+                  </strong>
+                  <span className="text-gray-700">
+                    {(() => {
+                      const c = getCountryByCode(raqi.country_code);
+                      return c ? `${c.flag_emoji} ${c.name_ar}` : raqi.country_code;
+                    })()}
+                  </span>
+                </div>
+
+                <div className="flex justify-between items-start gap-4 py-4">
+                  <strong className="text-[#163a2b] font-extrabold shrink-0 flex items-center gap-2">
+                    <MapPin className="w-4 h-4 text-[#1f6f50]" />
+                    الولاية
+                  </strong>
+                  <span className="text-gray-700">{raqi.wilaya ? getWilayaName(raqi.wilaya, raqi.country_code) : ''}</span>
                 </div>
 
                 {raqi.address && (

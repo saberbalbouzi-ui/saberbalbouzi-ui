@@ -1,5 +1,5 @@
 // ============================================================
-// دليل الرقاة - Register Page (Raqi Account Registration) - CORRIGÉ
+// دليل الرقاة - Register Page (Raqi Account Registration) - MULTI-PAYS
 // ============================================================
 import { useState, type FormEvent } from 'react';
 import { Link } from 'react-router-dom';
@@ -8,6 +8,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
 import { registerRaqiWithAccount, mockWilayas } from '@/lib/supabase';
+import { getActiveCountries } from '@/lib/countries';
 import {
   ChevronRight,
   Shield,
@@ -16,7 +17,68 @@ import {
   CheckCircle,
   Mail,
   Lock,
+  Globe,
+  MapPin,
 } from 'lucide-react';
+
+// ============================================================
+// WILAYAS PAR PAYS (temporaire — à remplacer par API Supabase)
+// ============================================================
+const wilayasByCountry: Record<string, { code: string; name_ar: string }[]> = {
+  DZ: mockWilayas.map((w) => ({ code: w.code, name_ar: w.name_ar })),
+  MA: [
+    { code: '01', name_ar: 'طنجة-تطوان-الحسيمة' },
+    { code: '02', name_ar: 'الشرق' },
+    { code: '03', name_ar: 'فاس-مكناس' },
+    { code: '04', name_ar: 'الرباط-سلا-القنيطرة' },
+    { code: '05', name_ar: 'بني ملال-خنيفرة' },
+    { code: '06', name_ar: 'الدار البيضاء-سطات' },
+    { code: '07', name_ar: 'مراكش-آسفي' },
+    { code: '08', name_ar: 'درعة-تافيلالت' },
+    { code: '09', name_ar: 'سوس-ماسة' },
+    { code: '10', name_ar: 'كلميم-واد نون' },
+    { code: '11', name_ar: 'العيون-الساقية الحمراء' },
+    { code: '12', name_ar: 'الداخلة-وادي الذهب' },
+  ],
+  TN: [
+    { code: '11', name_ar: 'تونس' },
+    { code: '12', name_ar: 'أريانة' },
+    { code: '13', name_ar: 'منوبة' },
+    { code: '14', name_ar: 'بن عروس' },
+    { code: '21', name_ar: 'نابل' },
+    { code: '22', name_ar: 'زغوان' },
+    { code: '23', name_ar: 'بنزرت' },
+    { code: '31', name_ar: 'باجة' },
+    { code: '32', name_ar: 'جندوبة' },
+    { code: '33', name_ar: 'الكاف' },
+    { code: '34', name_ar: 'سليانة' },
+    { code: '41', name_ar: 'القيروان' },
+    { code: '42', name_ar: 'القصرين' },
+    { code: '43', name_ar: 'سيدي بوزيد' },
+    { code: '51', name_ar: 'سوسة' },
+    { code: '52', name_ar: 'المنستير' },
+    { code: '53', name_ar: 'المهدية' },
+    { code: '61', name_ar: 'صفاقس' },
+    { code: '71', name_ar: 'قابس' },
+    { code: '72', name_ar: 'مدنين' },
+    { code: '73', name_ar: 'تطاوين' },
+    { code: '81', name_ar: 'قفصة' },
+    { code: '82', name_ar: 'توزر' },
+    { code: '83', name_ar: 'قبلي' },
+  ],
+  FR: [
+    { code: '75', name_ar: 'باريس' },
+    { code: '13', name_ar: 'مارسيليا' },
+    { code: '69', name_ar: 'ليون' },
+    { code: '31', name_ar: 'تولوز' },
+    { code: '33', name_ar: 'بوردو' },
+    { code: '59', name_ar: 'ليل' },
+    { code: '44', name_ar: 'نانت' },
+    { code: '67', name_ar: 'ستراسبورغ' },
+    { code: '34', name_ar: 'مونبلييه' },
+    { code: '06', name_ar: 'نيس' },
+  ],
+};
 
 type RegisterForm = {
   email: string;
@@ -26,6 +88,7 @@ type RegisterForm = {
   speciality: string;
   phone: string;
   whatsapp: string;
+  country_code: string;
   wilaya: string;
   address: string;
   experience_years: number;
@@ -46,6 +109,7 @@ export default function Register() {
     speciality: '',
     phone: '',
     whatsapp: '',
+    country_code: 'DZ',
     wilaya: '',
     address: '',
     experience_years: 0,
@@ -53,6 +117,9 @@ export default function Register() {
   });
 
   const [errors, setErrors] = useState<Record<string, string>>({});
+
+  const activeCountries = getActiveCountries();
+  const currentWilayas = wilayasByCountry[form.country_code] || wilayasByCountry['DZ'] || [];
 
   const getErrorMessage = (err: unknown): string => {
     if (typeof err === 'string' && err.trim()) return err;
@@ -97,9 +164,12 @@ export default function Register() {
       errs.password = 'كلمة السر يجب أن تكون 6 أحرف على الأقل';
     }
 
-    // CORRECTION: Vérifier la confirmation du mot de passe
     if (form.password !== form.confirmPassword) {
       errs.confirmPassword = 'كلمتا السر غير متطابقتين';
+    }
+
+    if (!form.country_code) {
+      errs.country_code = 'الدولة مطلوبة';
     }
 
     if (!form.wilaya) {
@@ -119,6 +189,7 @@ export default function Register() {
       speciality: '',
       phone: '',
       whatsapp: '',
+      country_code: 'DZ',
       wilaya: '',
       address: '',
       experience_years: 0,
@@ -133,6 +204,15 @@ export default function Register() {
       ...prev,
       [field]: value,
     }));
+
+    // Si on change le pays, réinitialiser la wilaya
+    if (field === 'country_code') {
+      setForm((prev) => ({
+        ...prev,
+        country_code: value as string,
+        wilaya: '',
+      }));
+    }
 
     if (errors[field]) {
       setErrors((prev) => {
@@ -156,7 +236,6 @@ export default function Register() {
     setSubmitting(true);
 
     try {
-      // CORRECTION: Récupérer l'info de confirmation d'email
       const result = await registerRaqiWithAccount({
         email: form.email.trim().toLowerCase(),
         password: form.password,
@@ -164,6 +243,7 @@ export default function Register() {
         speciality: form.speciality.trim(),
         phone: form.phone.trim(),
         whatsapp: form.whatsapp.trim(),
+        country_code: form.country_code,
         wilaya: form.wilaya,
         address: form.address.trim(),
         experience_years: Number(form.experience_years) || 0,
@@ -198,7 +278,6 @@ export default function Register() {
               تم استلام طلب تسجيل الراقي بنجاح، وتم إنشاء حسابك أيضًا.
             </p>
 
-            {/* CORRECTION: Message conditionnel selon la confirmation d'email */}
             {needsConfirmation ? (
               <div className="rounded-2xl bg-blue-50 border border-blue-200 px-4 py-3 text-sm text-blue-800 leading-7 mb-6">
                 <strong>تنبيه مهم:</strong> يجب تأكيد بريدك الإلكتروني أولًا قبل تسجيل الدخول.
@@ -333,7 +412,6 @@ export default function Register() {
                 )}
               </div>
 
-              {/* CORRECTION: Champ de confirmation du mot de passe */}
               <div className="space-y-2 md:col-span-2">
                 <label className="text-sm font-bold text-gray-700">تأكيد كلمة السر *</label>
                 <div className="relative">
@@ -354,8 +432,38 @@ export default function Register() {
                 )}
               </div>
 
+              {/* ← AJOUTÉ : الدولة */}
               <div className="space-y-2">
-                <label className="text-sm font-bold text-gray-700">الولاية *</label>
+                <label className="text-sm font-bold text-gray-700 flex items-center gap-1">
+                  <Globe className="w-4 h-4" />
+                  الدولة *
+                </label>
+                <select
+                  value={form.country_code}
+                  onChange={(e) => handleChange('country_code', e.target.value)}
+                  className={`w-full h-12 px-4 border rounded-xl text-base bg-white text-gray-800 focus:outline-none focus:ring-2 focus:ring-[#1f6f50] ${
+                    errors.country_code
+                      ? 'border-red-300 ring-1 ring-red-200'
+                      : 'border-gray-200'
+                  }`}
+                >
+                  {activeCountries.map((c) => (
+                    <option key={c.code} value={c.code}>
+                      {c.flag_emoji} {c.name_ar}
+                    </option>
+                  ))}
+                </select>
+                {errors.country_code && (
+                  <p className="text-red-600 text-sm">{errors.country_code}</p>
+                )}
+              </div>
+
+              {/* ← MODIFIÉ : الولاية dynamique selon le pays */}
+              <div className="space-y-2">
+                <label className="text-sm font-bold text-gray-700 flex items-center gap-1">
+                  <MapPin className="w-4 h-4" />
+                  الولاية *
+                </label>
                 <select
                   value={form.wilaya}
                   onChange={(e) => handleChange('wilaya', e.target.value)}
@@ -366,7 +474,7 @@ export default function Register() {
                   }`}
                 >
                   <option value="">اختر الولاية</option>
-                  {mockWilayas.map((w) => (
+                  {currentWilayas.map((w) => (
                     <option key={w.code} value={w.code}>
                       {w.name_ar}
                     </option>

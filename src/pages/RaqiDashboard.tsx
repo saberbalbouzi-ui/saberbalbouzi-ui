@@ -1,5 +1,5 @@
 // ============================================================
-// دليل الرقاة - Raqi Dashboard (CORRIGÉ)
+// دليل الرقاة - Raqi Dashboard (CORRIGÉ - Multi-Pays)
 // ============================================================
 import { useEffect, useState } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
@@ -14,6 +14,7 @@ import {
   supabase,
   updateCurrentRaqiProfile,
 } from '@/lib/supabase';
+import { getCountryByCode } from '@/lib/countries';
 import { useRealtimeCounters } from '@/hooks/useRealtimeCounters';
 import type { Raqi } from '@/types';
 import {
@@ -40,6 +41,65 @@ import {
   Music2,
   Globe,
 } from 'lucide-react';
+
+// ============================================================
+// WILAYAS PAR PAYS (temporaire — à remplacer par API Supabase)
+// ============================================================
+const wilayasByCountry: Record<string, { code: string; name_ar: string }[]> = {
+  DZ: mockWilayas.map((w) => ({ code: w.code, name_ar: w.name_ar })),
+  MA: [
+    { code: '01', name_ar: 'طنجة-تطوان-الحسيمة' },
+    { code: '02', name_ar: 'الشرق' },
+    { code: '03', name_ar: 'فاس-مكناس' },
+    { code: '04', name_ar: 'الرباط-سلا-القنيطرة' },
+    { code: '05', name_ar: 'بني ملال-خنيفرة' },
+    { code: '06', name_ar: 'الدار البيضاء-سطات' },
+    { code: '07', name_ar: 'مراكش-آسفي' },
+    { code: '08', name_ar: 'درعة-تافيلالت' },
+    { code: '09', name_ar: 'سوس-ماسة' },
+    { code: '10', name_ar: 'كلميم-واد نون' },
+    { code: '11', name_ar: 'العيون-الساقية الحمراء' },
+    { code: '12', name_ar: 'الداخلة-وادي الذهب' },
+  ],
+  TN: [
+    { code: '11', name_ar: 'تونس' },
+    { code: '12', name_ar: 'أريانة' },
+    { code: '13', name_ar: 'منوبة' },
+    { code: '14', name_ar: 'بن عروس' },
+    { code: '21', name_ar: 'نابل' },
+    { code: '22', name_ar: 'زغوان' },
+    { code: '23', name_ar: 'بنزرت' },
+    { code: '31', name_ar: 'باجة' },
+    { code: '32', name_ar: 'جندوبة' },
+    { code: '33', name_ar: 'الكاف' },
+    { code: '34', name_ar: 'سليانة' },
+    { code: '41', name_ar: 'القيروان' },
+    { code: '42', name_ar: 'القصرين' },
+    { code: '43', name_ar: 'سيدي بوزيد' },
+    { code: '51', name_ar: 'سوسة' },
+    { code: '52', name_ar: 'المنستير' },
+    { code: '53', name_ar: 'المهدية' },
+    { code: '61', name_ar: 'صفاقس' },
+    { code: '71', name_ar: 'قابس' },
+    { code: '72', name_ar: 'مدنين' },
+    { code: '73', name_ar: 'تطاوين' },
+    { code: '81', name_ar: 'قفصة' },
+    { code: '82', name_ar: 'توزر' },
+    { code: '83', name_ar: 'قبلي' },
+  ],
+  FR: [
+    { code: '75', name_ar: 'باريس' },
+    { code: '13', name_ar: 'مارسيليا' },
+    { code: '69', name_ar: 'ليون' },
+    { code: '31', name_ar: 'تولوز' },
+    { code: '33', name_ar: 'بوردو' },
+    { code: '59', name_ar: 'ليل' },
+    { code: '44', name_ar: 'نانت' },
+    { code: '67', name_ar: 'ستراسبورغ' },
+    { code: '34', name_ar: 'مونبلييه' },
+    { code: '06', name_ar: 'نيس' },
+  ],
+};
 
 export default function RaqiDashboard() {
   const navigate = useNavigate();
@@ -76,6 +136,7 @@ export default function RaqiDashboard() {
     speciality: '',
     phone: '',
     whatsapp: '',
+    country_code: 'DZ',
     wilaya: '',
     address: '',
     experience_years: '',
@@ -168,6 +229,7 @@ export default function RaqiDashboard() {
         speciality: data.speciality || '',
         phone: data.phone || '',
         whatsapp: data.whatsapp || '',
+        country_code: data.country_code || 'DZ',
         wilaya: data.wilaya || '',
         address: data.address || '',
         experience_years:
@@ -203,6 +265,11 @@ export default function RaqiDashboard() {
       return;
     }
 
+    if (!form.country_code) {
+      setError('الدولة مطلوبة');
+      return;
+    }
+
     if (!form.wilaya.trim()) {
       setError('الولاية مطلوبة');
       return;
@@ -219,6 +286,7 @@ export default function RaqiDashboard() {
         speciality: form.speciality.trim() || null,
         phone: form.phone.trim() || null,
         whatsapp: form.whatsapp.trim() || null,
+        country_code: form.country_code,
         wilaya: form.wilaya,
         address: form.address.trim() || null,
         experience_years: form.experience_years.trim()
@@ -299,10 +367,12 @@ export default function RaqiDashboard() {
   const isVerified = profile?.verified_badge ?? false;
   const isFeatured = profile?.featured_badge ?? false;
 
-  // Champ Facebook: déverrouillé si verified
   const facebookLocked = !isVerified;
-  // Champs YouTube, Instagram, TikTok: déverrouillés si featured
   const featuredLocked = !isFeatured;
+
+  // Wilayas dynamiques selon le pays
+  const currentWilayas = wilayasByCountry[form.country_code] || wilayasByCountry['DZ'] || [];
+  const country = getCountryByCode(form.country_code);
 
   if (sessionLoading) {
     return (
@@ -587,8 +657,26 @@ export default function RaqiDashboard() {
                   </div>
                 </div>
 
+                {/* ← AJOUTÉ : الدولة */}
                 <div className="space-y-2">
-                  <label className="text-sm font-bold text-gray-700">
+                  <label className="text-sm font-bold text-gray-700 flex items-center gap-1">
+                    <Globe className="w-4 h-4" />
+                    الدولة
+                  </label>
+                  <div className="flex items-center gap-2 h-12 px-4 border border-gray-200 rounded-xl bg-gray-50 text-gray-800">
+                    <span className="text-lg">{country?.flag_emoji}</span>
+                    <span className="font-bold">{country?.name_ar}</span>
+                    <span className="text-gray-400 text-sm mr-auto">{country?.name_fr}</span>
+                  </div>
+                  <p className="text-xs text-gray-400">
+                    الدولة ثابتة ولا يمكن تغييرها. تواصل مع الإدارة إذا لزم الأمر.
+                  </p>
+                </div>
+
+                {/* ← MODIFIÉ : الولاية dynamique selon le pays */}
+                <div className="space-y-2">
+                  <label className="text-sm font-bold text-gray-700 flex items-center gap-1">
+                    <MapPin className="w-4 h-4" />
                     الولاية
                   </label>
                   <select
@@ -597,7 +685,7 @@ export default function RaqiDashboard() {
                     className="w-full h-12 px-4 border border-gray-200 rounded-xl text-base bg-white text-gray-800 focus:outline-none focus:ring-2 focus:ring-[#1f6f50] focus:border-transparent"
                   >
                     <option value="">اختر الولاية</option>
-                    {mockWilayas.map((w) => (
+                    {currentWilayas.map((w) => (
                       <option key={w.code} value={w.code}>
                         {w.name_ar}
                       </option>
@@ -605,7 +693,7 @@ export default function RaqiDashboard() {
                   </select>
                 </div>
 
-                <div className="space-y-2">
+                <div className="space-y-2 md:col-span-2">
                   <label className="text-sm font-bold text-gray-700">
                     العنوان
                   </label>

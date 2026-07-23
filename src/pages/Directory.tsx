@@ -7,6 +7,8 @@ import { Link, useSearchParams } from 'react-router-dom';
 import { Card } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { getRaqis, mockWilayas } from '@/lib/supabase';
+import { useCountryDetection } from '@/hooks/useCountryDetection';
+import { getActiveCountries } from '@/lib/countries';
 import type { Raqi } from '@/types';
 import {
   Search,
@@ -17,37 +19,125 @@ import {
   Shield,
   Loader2,
   Sparkles,
+  Globe,
 } from 'lucide-react';
+
+// ============================================================
+// WILAYAS PAR PAYS (temporaire — à remplacer par API Supabase)
+// ============================================================
+const wilayasByCountry: Record<string, { code: string; name_ar: string }[]> = {
+  DZ: mockWilayas.map((w) => ({ code: w.code, name_ar: w.name_ar })),
+  MA: [
+    { code: '01', name_ar: 'طنجة-تطوان-الحسيمة' },
+    { code: '02', name_ar: 'الشرق' },
+    { code: '03', name_ar: 'فاس-مكناس' },
+    { code: '04', name_ar: 'الرباط-سلا-القنيطرة' },
+    { code: '05', name_ar: 'بني ملال-خنيفرة' },
+    { code: '06', name_ar: 'الدار البيضاء-سطات' },
+    { code: '07', name_ar: 'مراكش-آسفي' },
+    { code: '08', name_ar: 'درعة-تافيلالت' },
+    { code: '09', name_ar: 'سوس-ماسة' },
+    { code: '10', name_ar: 'كلميم-واد نون' },
+    { code: '11', name_ar: 'العيون-الساقية الحمراء' },
+    { code: '12', name_ar: 'الداخلة-وادي الذهب' },
+  ],
+  TN: [
+    { code: '11', name_ar: 'تونس' },
+    { code: '12', name_ar: 'أريانة' },
+    { code: '13', name_ar: 'منوبة' },
+    { code: '14', name_ar: 'بن عروس' },
+    { code: '21', name_ar: 'نابل' },
+    { code: '22', name_ar: 'زغوان' },
+    { code: '23', name_ar: 'بنزرت' },
+    { code: '31', name_ar: 'باجة' },
+    { code: '32', name_ar: 'جندوبة' },
+    { code: '33', name_ar: 'الكاف' },
+    { code: '34', name_ar: 'سليانة' },
+    { code: '41', name_ar: 'القيروان' },
+    { code: '42', name_ar: 'القصرين' },
+    { code: '43', name_ar: 'سيدي بوزيد' },
+    { code: '51', name_ar: 'سوسة' },
+    { code: '52', name_ar: 'المنستير' },
+    { code: '53', name_ar: 'المهدية' },
+    { code: '61', name_ar: 'صفاقس' },
+    { code: '71', name_ar: 'قابس' },
+    { code: '72', name_ar: 'مدنين' },
+    { code: '73', name_ar: 'تطاوين' },
+    { code: '81', name_ar: 'قفصة' },
+    { code: '82', name_ar: 'توزر' },
+    { code: '83', name_ar: 'قبلي' },
+  ],
+  FR: [
+    { code: '75', name_ar: 'باريس' },
+    { code: '13', name_ar: 'مارسيليا' },
+    { code: '69', name_ar: 'ليون' },
+    { code: '31', name_ar: 'تولوز' },
+    { code: '33', name_ar: 'بوردو' },
+    { code: '59', name_ar: 'ليل' },
+    { code: '44', name_ar: 'نانت' },
+    { code: '67', name_ar: 'ستراسبورغ' },
+    { code: '34', name_ar: 'مونبلييه' },
+    { code: '06', name_ar: 'نيس' },
+  ],
+};
 
 export default function Directory() {
   const [searchParams, setSearchParams] = useSearchParams();
+  const { countryCode, setManualCountry } = useCountryDetection();
+
   const [raqis, setRaqis] = useState<Raqi[]>([]);
   const [filtered, setFiltered] = useState<Raqi[]>([]);
   const [loading, setLoading] = useState(true);
+
+  // Filtres
+  const [selectedCountry, setSelectedCountry] = useState(countryCode);
   const [wilayaFilter, setWilayaFilter] = useState(searchParams.get('wilaya') || '');
   const [searchQuery, setSearchQuery] = useState('');
 
-  // Load raqis
+  const activeCountries = getActiveCountries();
+  const currentWilayas = wilayasByCountry[selectedCountry] || wilayasByCountry['DZ'] || [];
+
+  // Sync avec le pays détecté
   useEffect(() => {
-    const load = async () => {
-      setLoading(true);
-      try {
-        const data = await getRaqis();
-        setRaqis(Array.isArray(data) ? data : []);
-        setFiltered([]);
-      } catch (err) {
-        console.error('Error loading raqis:', err);
-        setRaqis([]);
-        setFiltered([]);
-      } finally {
-        setLoading(false);
+    setSelectedCountry(countryCode);
+  }, [countryCode]);
+
+  // Charger les raqis quand le pays change
+  const load = async () => {
+    setLoading(true);
+    try {
+      const data = await getRaqis(selectedCountry);
+      setRaqis(Array.isArray(data) ? data : []);
+      setFiltered([]);
+    } catch (err) {
+      console.error('Error loading raqis:', err);
+      setRaqis([]);
+      setFiltered([]);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    load();
+  }, [selectedCountry]);
+
+  // Recharger quand le pays change via le header (si tu gardes le selector ailleurs)
+  useEffect(() => {
+    const handleCountryChange = (e: Event) => {
+      const customEvent = e as CustomEvent;
+      const newCode = customEvent.detail?.code;
+      if (newCode) {
+        setSelectedCountry(newCode);
+        setWilayaFilter('');
+        setSearchQuery('');
       }
     };
-
-    load();
+    window.addEventListener('countrychange', handleCountryChange);
+    return () => window.removeEventListener('countrychange', handleCountryChange);
   }, []);
 
-  // Apply filters
+  // Appliquer les filtres (wilaya + recherche texte)
   useEffect(() => {
     let result = [...raqis];
     const q = searchQuery.trim().toLowerCase();
@@ -73,15 +163,21 @@ export default function Directory() {
 
     setFiltered(result);
 
-    if (wilayaFilter) {
-      setSearchParams({ wilaya: wilayaFilter });
-    } else {
-      setSearchParams({});
-    }
+    const params = new URLSearchParams();
+    if (wilayaFilter) params.set('wilaya', wilayaFilter);
+    setSearchParams(params);
   }, [wilayaFilter, searchQuery, raqis, setSearchParams]);
 
-  const getWilayaName = (code: string) => {
-    return mockWilayas.find((w) => w.code === code)?.name_ar || code;
+  const handleCountryChange = (code: string) => {
+    setSelectedCountry(code);
+    setManualCountry(code);
+    setWilayaFilter('');
+    setSearchQuery('');
+  };
+
+  const getWilayaName = (code: string | null) => {
+    if (!code) return '';
+    return currentWilayas.find((w) => w.code === code)?.name_ar || code;
   };
 
   const hasSearched = wilayaFilter !== '' || searchQuery !== '';
@@ -179,25 +275,47 @@ export default function Directory() {
           </h1>
 
           <p className="text-white/80 text-base max-w-xl mx-auto">
-            ابحث عن الراقي الشرعي الأقرب إليك من بين الرقاة المعتمدين في ولايات الجزائر.
+            ابحث عن الراقي الشرعي الأقرب إليك من بين الرقاة المعتمدين.
           </p>
         </div>
       </div>
 
       <div className="max-w-5xl mx-auto px-4 py-8">
-        {/* Filters */}
+        {/* Filters — AVEC PAYS + WILAYA DYNAMIQUES */}
         <Card className="p-5 rounded-2xl border border-gray-100 shadow-lg mb-8">
           <div className="grid grid-cols-1 md:grid-cols-3 gap-4 items-end">
-            {/* Wilaya Select */}
+            {/* Pays */}
             <div className="space-y-2">
-              <label className="text-sm font-bold text-gray-700">الولاية</label>
+              <label className="text-sm font-bold text-gray-700 flex items-center gap-1">
+                <Globe className="w-4 h-4" />
+                الدولة
+              </label>
+              <select
+                value={selectedCountry}
+                onChange={(e) => handleCountryChange(e.target.value)}
+                className="w-full h-12 px-4 border border-gray-200 rounded-xl text-base bg-white text-gray-800 focus:outline-none focus:ring-2 focus:ring-[#1f6f50] focus:border-transparent"
+              >
+                {activeCountries.map((c) => (
+                  <option key={c.code} value={c.code}>
+                    {c.flag_emoji} {c.name_ar}
+                  </option>
+                ))}
+              </select>
+            </div>
+
+            {/* Wilaya */}
+            <div className="space-y-2">
+              <label className="text-sm font-bold text-gray-700 flex items-center gap-1">
+                <MapPin className="w-4 h-4" />
+                الولاية
+              </label>
               <select
                 value={wilayaFilter}
                 onChange={(e) => setWilayaFilter(e.target.value)}
                 className="w-full h-12 px-4 border border-gray-200 rounded-xl text-base bg-white text-gray-800 focus:outline-none focus:ring-2 focus:ring-[#1f6f50] focus:border-transparent"
               >
                 <option value="">اختر الولاية</option>
-                {mockWilayas.map((w) => (
+                {currentWilayas.map((w) => (
                   <option key={w.code} value={w.code}>
                     {w.name_ar}
                   </option>
@@ -206,7 +324,7 @@ export default function Directory() {
             </div>
 
             {/* Search Input */}
-            <div className="space-y-2 md:col-span-2">
+            <div className="space-y-2">
               <label className="text-sm font-bold text-gray-700">البحث</label>
               <div className="relative">
                 <Search className="absolute right-4 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400" />

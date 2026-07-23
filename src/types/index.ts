@@ -1,5 +1,5 @@
 // ============================================================
-// دليل الرقاة - Types & Interfaces
+// دليل الرقاة - Types & Interfaces (Global)
 // ============================================================
 
 export interface Raqi {
@@ -11,7 +11,15 @@ export interface Raqi {
   speciality: string | null;
   phone: string | null;
   whatsapp: string | null;
-  wilaya: string;
+  // === MULTI-PAYS ===
+  country_code: string;
+  city: string | null;
+  wilaya: string | null;
+  postal_code: string | null;
+  latitude: number | null;
+  longitude: number | null;
+  languages_spoken: string[] | null;
+  // === FIN MULTI-PAYS ===
   address: string | null;
   experience_years: number;
   bio: string | null;
@@ -39,7 +47,13 @@ export interface RaqiInsert {
   speciality?: string;
   phone?: string;
   whatsapp?: string;
-  wilaya: string;
+  country_code: string;
+  city?: string;
+  wilaya?: string;
+  postal_code?: string;
+  latitude?: number;
+  longitude?: number;
+  languages_spoken?: string[];
   address?: string;
   experience_years?: number;
   bio?: string;
@@ -70,6 +84,28 @@ export interface Wilaya {
   id: number;
   code: string;
   name_ar: string;
+}
+
+export interface Country {
+  code: string;
+  name_ar: string;
+  name_en: string;
+  name_fr: string;
+  name_local: string;
+  flag_emoji: string;
+  phone_prefix: string;
+  is_active: boolean;
+  has_wilaya_system: boolean;
+  default_language: string;
+  currency_code: string;
+}
+
+export interface City {
+  id: number;
+  country_code: string;
+  name_ar: string;
+  name_en: string;
+  name_local: string;
 }
 
 export type FilterStatus = 'all' | 'pending' | 'approved' | 'rejected';
