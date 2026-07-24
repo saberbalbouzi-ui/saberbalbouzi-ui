@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { Card } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -34,13 +34,24 @@ import {
   Instagram,
   Music2,
   ExternalLink,
+  AlertTriangle,
 } from 'lucide-react';
 
 type StatusFilter = 'all' | 'pending' | 'approved' | 'rejected';
 
-// === HOOK TEMPS RÉEL POUR L'ADMIN ===
+type LiveCounterMap = Record<
+  string,
+  {
+    view_count: number;
+    phone_click_count: number;
+    whatsapp_click_count: number;
+  }
+>;
+
+const ADMIN_EMAIL = (import.meta.env.VITE_ADMIN_EMAIL || '').trim().toLowerCase();
+
 function useRealtimeAdminCounters(raqis: Raqi[]) {
-  const [liveUpdates, setLiveUpdates] = useState<Record<string, Partial<Raqi>>>({});
+  const [liveUpdates, setLiveUpdates] = useState<LiveCounterMap>({});
 
   useEffect(() => {
     if (raqis.length === 0) return;
@@ -56,12 +67,13 @@ function useRealtimeAdminCounters(raqis: Raqi[]) {
         },
         (payload) => {
           const updated = payload.new as Raqi;
+
           setLiveUpdates((prev) => ({
             ...prev,
             [updated.id]: {
-              view_count: updated.view_count,
-              phone_click_count: updated.phone_click_count,
-              whatsapp_click_count: updated.whatsapp_click_count,
+              view_count: updated.view_count ?? 0,
+              phone_click_count: updated.phone_click_count ?? 0,
+              whatsapp_click_count: updated.whatsapp_click_count ?? 0,
             },
           }));
         }
@@ -71,7 +83,7 @@ function useRealtimeAdminCounters(raqis: Raqi[]) {
     return () => {
       supabase.removeChannel(channel);
     };
-  }, [raqis.length > 0 ? 'subscribed' : '']);
+  }, [raqis.length]);
 
   return liveUpdates;
 }
@@ -87,13 +99,24 @@ export default function Admin() {
   const [statusFilter, setStatusFilter] = useState<StatusFilter>('all');
   const [searchQuery, setSearchQuery] = useState('');
 
-  // === COMPTEURS EN TEMPS RÉEL ===
   const liveUpdates = useRealtimeAdminCounters(raqis);
 
-  const loadRaqis = async () => {
+  const getWilayaName = (code: string | null) => {
+    if (!code) return '';
+    return mockWilayas.find((w) => w.code === code)?.name_ar || code;
+  };
+
+  const getLiveValue = (
+    raqi: Raqi,
+    key: 'view_count' | 'phone_click_count' | 'whatsapp_click_count'
+  ) => {
+    return liveUpdates[raqi.id]?.[key] ?? raqi[key] ?? 0;
+  };
+
+  const loadRaqis = async (filter: StatusFilter = statusFilter) => {
     setLoading(true);
     try {
-      const data = await getAllRaqis(statusFilter === 'all' ? undefined : statusFilter);
+      const data = await getAllRaqis(filter === 'all' ? undefined : filter);
       setRaqis(Array.isArray(data) ? data : []);
     } catch (err) {
       console.error('Error loading raqis:', err);
@@ -103,6 +126,24 @@ export default function Admin() {
     }
   };
 
+  const applyAdminSession = async (session: any) => {
+    const userEmail = session?.user?.email?.toLowerCase?.() || '';
+    const isAdmin = !!session && !!ADMIN_EMAIL && userEmail === ADMIN_EMAIL;
+
+    if (!isAdmin) {
+      if (session) {
+        await supabase.auth.signOut();
+      }
+      setIsLoggedIn(false);
+      setRaqis([]);
+      return false;
+    }
+
+    setIsLoggedIn(true);
+    await loadRaqis();
+    return true;
+  };
+
   useEffect(() => {
     const checkSession = async () => {
       try {
@@ -110,11 +151,7 @@ export default function Admin() {
           data: { session },
         } = await supabase.auth.getSession();
 
-        setIsLoggedIn(!!session);
-
-        if (session) {
-          await loadRaqis();
-        }
+        await applyAdminSession(session);
       } finally {
         setSessionLoading(false);
       }
@@ -125,14 +162,7 @@ export default function Admin() {
     const {
       data: { subscription },
     } = supabase.auth.onAuthStateChange(async (_event, session) => {
-      setIsLoggedIn(!!session);
-
-      if (session) {
-        await loadRaqis();
-      } else {
-        setRaqis([]);
-      }
-
+      await applyAdminSession(session);
       setSessionLoading(false);
     });
 
@@ -141,15 +171,25 @@ export default function Admin() {
 
   useEffect(() => {
     if (isLoggedIn) {
-      loadRaqis();
+      loadRaqis(statusFilter);
     }
   }, [statusFilter, isLoggedIn]);
 
   const handleLogin = async () => {
     setLoginError('');
 
+    if (!ADMIN_EMAIL) {
+      setLoginError('VITE_ADMIN_EMAIL غير مضبوط في ملف البيئة.');
+      return;
+    }
+
+    if (email.trim().toLowerCase() !== ADMIN_EMAIL) {
+      setLoginError('هذا البريد غير مخول للدخول إلى لوحة الإدارة.');
+      return;
+    }
+
     const { error } = await supabase.auth.signInWithPassword({
-      email,
+      email: email.trim().toLowerCase(),
       password,
     });
 
@@ -218,26 +258,20 @@ export default function Admin() {
     }
   };
 
-  const getWilayaName = (code: string) => {
-    return mockWilayas.find((w) => w.code === code)?.name_ar || code;
-  };
+  const filtered = useMemo(() => {
+    return raqis.filter((r) => {
+      if (!searchQuery.trim()) return true;
+      const q = searchQuery.trim().toLowerCase();
 
-  const filtered = raqis.filter((r) => {
-    if (!searchQuery.trim()) return true;
-    const q = searchQuery.trim().toLowerCase();
-
-    return (
-      r.full_name?.toLowerCase().includes(q) ||
-      r.speciality?.toLowerCase().includes(q) ||
-      r.wilaya?.toLowerCase().includes(q) ||
-      r.address?.toLowerCase().includes(q)
-    );
-  });
-
-  // === STATS AVEC DONNÉES TEMPS RÉEL ===
-  const getLiveValue = (raqi: Raqi, key: keyof Raqi) => {
-    return (liveUpdates[raqi.id]?.[key] as number) ?? (raqi[key] as number) ?? 0;
-  };
+      return (
+        r.full_name?.toLowerCase().includes(q) ||
+        (r.speciality?.toLowerCase().includes(q) ?? false) ||
+        (r.wilaya?.toLowerCase().includes(q) ?? false) ||
+        (r.address?.toLowerCase().includes(q) ?? false) ||
+        (r.email?.toLowerCase().includes(q) ?? false)
+      );
+    });
+  }, [raqis, searchQuery]);
 
   const stats = {
     total: raqis.length,
@@ -245,7 +279,7 @@ export default function Admin() {
     approved: raqis.filter((r) => r.status === 'approved').length,
     rejected: raqis.filter((r) => r.status === 'rejected').length,
     verified: raqis.filter((r) => r.verified_badge).length,
-    featured: raqis.filter((r: any) => r.featured_badge).length,
+    featured: raqis.filter((r) => !!r.featured_badge).length,
     totalViews: raqis.reduce((sum, r) => sum + getLiveValue(r, 'view_count'), 0),
     totalPhone: raqis.reduce((sum, r) => sum + getLiveValue(r, 'phone_click_count'), 0),
     totalWhatsApp: raqis.reduce((sum, r) => sum + getLiveValue(r, 'whatsapp_click_count'), 0),
@@ -253,7 +287,7 @@ export default function Admin() {
 
   if (sessionLoading) {
     return (
-      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
+      <div className="min-h-screen bg-gray-50 flex items-center justify-center px-4">
         <div className="flex items-center gap-3 text-gray-600 font-bold">
           <Loader2 className="w-6 h-6 animate-spin text-[#1f6f50]" />
           جاري التحقق...
@@ -264,183 +298,129 @@ export default function Admin() {
 
   if (!isLoggedIn) {
     return (
-      <div className="min-h-screen bg-gray-50 flex items-center justify-center px-4">
-        <Card className="w-full max-w-md rounded-3xl border border-gray-100 shadow-xl p-7">
-          <div className="text-center mb-6">
-            <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-[#ecfdf3] text-[#166534] font-bold text-sm mb-4">
-              <Shield className="w-4 h-4" />
-              لوحة الإدارة
+      <div className="min-h-screen bg-gray-50 flex items-center justify-center px-4 py-8">
+        <div className="w-full max-w-md space-y-4">
+          <Card className="rounded-3xl shadow-2xl p-8 border-0">
+            <div className="text-center mb-6">
+              <div className="w-16 h-16 rounded-2xl bg-[#1f6f50]/10 flex items-center justify-center mx-auto mb-4">
+                <Shield className="w-8 h-8 text-[#1f6f50]" />
+              </div>
+              <h1 className="text-2xl font-extrabold text-gray-900">لوحة الإدارة</h1>
+              <p className="text-gray-500 mt-2">سجّل الدخول بحساب المدير فقط</p>
             </div>
 
-            <h1 className="text-3xl font-extrabold text-gray-900 mb-2">
-              لوحة الإدارة
-            </h1>
-
-            <p className="text-gray-500 font-medium">
-              سجّل الدخول بحساب المدير
-            </p>
-          </div>
-
-          <div className="space-y-4">
-            <div className="relative">
-              <Mail className="absolute right-3 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400" />
-              <Input
-                value={email}
-                onChange={(e) => {
-                  setEmail(e.target.value);
-                  setLoginError('');
-                }}
-                placeholder="البريد الإلكتروني"
-                className="h-12 pr-10 rounded-xl"
-              />
-            </div>
-
-            <div className="relative">
-              <Lock className="absolute right-3 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400" />
-              <Input
-                type="password"
-                value={password}
-                onChange={(e) => {
-                  setPassword(e.target.value);
-                  setLoginError('');
-                }}
-                onKeyDown={(e) => e.key === 'Enter' && handleLogin()}
-                placeholder="كلمة المرور"
-                className="h-12 pr-10 rounded-xl"
-              />
-            </div>
-
-            {loginError && (
-              <div className="rounded-xl bg-red-50 border border-red-100 px-4 py-3 text-sm font-bold text-red-600">
-                {loginError}
+            {!ADMIN_EMAIL && (
+              <div className="rounded-2xl border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-800 mb-4 flex items-start gap-2">
+                <AlertTriangle className="w-5 h-5 shrink-0 mt-0.5" />
+                <span>المتغير VITE_ADMIN_EMAIL غير موجود في ملف البيئة.</span>
               </div>
             )}
 
-            <Button
-              onClick={handleLogin}
-              className="w-full h-12 rounded-xl bg-[#1f6f50] hover:bg-[#195a41] text-white font-extrabold"
-            >
-              دخول
-            </Button>
-          </div>
-        </Card>
+            <div className="space-y-4">
+              <div className="relative">
+                <Mail className="w-5 h-5 text-gray-400 absolute right-3 top-1/2 -translate-y-1/2" />
+                <Input
+                  type="email"
+                  value={email}
+                  onChange={(e) => {
+                    setEmail(e.target.value);
+                    setLoginError('');
+                  }}
+                  placeholder="البريد الإلكتروني"
+                  className="h-12 pr-10 rounded-xl"
+                  dir="ltr"
+                />
+              </div>
+
+              <div className="relative">
+                <Lock className="w-5 h-5 text-gray-400 absolute right-3 top-1/2 -translate-y-1/2" />
+                <Input
+                  type="password"
+                  value={password}
+                  onChange={(e) => {
+                    setPassword(e.target.value);
+                    setLoginError('');
+                  }}
+                  onKeyDown={(e) => e.key === 'Enter' && handleLogin()}
+                  placeholder="كلمة المرور"
+                  className="h-12 pr-10 rounded-xl"
+                  dir="ltr"
+                />
+              </div>
+
+              {loginError && (
+                <div className="rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm font-semibold text-red-700">
+                  {loginError}
+                </div>
+              )}
+
+              <Button
+                onClick={handleLogin}
+                className="w-full h-12 rounded-xl bg-[#1f6f50] hover:bg-[#18593f] text-white font-bold"
+              >
+                دخول
+              </Button>
+            </div>
+          </Card>
+        </div>
       </div>
     );
   }
 
   return (
-    <div className="min-h-screen bg-gray-50">
-      <div className="bg-gradient-to-br from-[#0b5a35] to-[#10693e] py-10 px-4">
-        <div className="max-w-7xl mx-auto flex flex-col gap-5 md:flex-row md:items-center md:justify-between">
-          <div>
-            <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full border border-[#d6b14a60] bg-white/10 mb-4">
-              <Shield className="w-4 h-4 text-[#f1d27b]" />
-              <span className="text-[#f1d27b] text-sm font-bold">
+    <div className="min-h-screen bg-gray-50 px-4 py-8">
+      <div className="max-w-7xl mx-auto space-y-6">
+        <Card className="rounded-3xl border-0 shadow-xl p-6 md:p-8">
+          <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
+            <div>
+              <div className="inline-flex items-center gap-2 rounded-full bg-[#1f6f50]/10 px-4 py-2 text-[#1f6f50] font-bold mb-3">
+                <Shield className="w-4 h-4" />
                 لوحة إدارة دليل الرقاة
-              </span>
+              </div>
+              <h1 className="text-3xl font-extrabold text-gray-900">لوحة إدارة دليل الرقاة</h1>
+              <p className="text-gray-600 mt-2">إدارة الطلبات، التوثيق، التمييز، والحذف</p>
             </div>
 
-            <h1 className="text-3xl md:text-4xl font-extrabold text-white mb-2">
-              لوحة إدارة دليل الرقاة
-            </h1>
-
-            <p className="text-white/80 text-base">
-              إدارة الطلبات، التوثيق، التمييز، والحذف
-            </p>
+            <Button
+              onClick={handleLogout}
+              variant="outline"
+              className="rounded-xl h-11 border-gray-300"
+            >
+              <LogOut className="w-4 h-4 ml-2" />
+              خروج
+            </Button>
           </div>
+        </Card>
 
-          <Button
-            onClick={handleLogout}
-            className="bg-white text-[#1f6f50] hover:bg-gray-100 rounded-xl font-bold"
-          >
-            <LogOut className="w-4 h-4 ml-2" />
-            خروج
-          </Button>
-        </div>
-      </div>
-
-      <div className="max-w-7xl mx-auto px-4 py-8">
-        <div className="grid grid-cols-2 md:grid-cols-3 xl:grid-cols-6 gap-4 mb-8">
+        <div className="grid grid-cols-2 md:grid-cols-3 xl:grid-cols-9 gap-3">
           {[
-            {
-              label: 'الكل',
-              value: stats.total,
-              icon: Users,
-              color: 'bg-slate-100 text-slate-700',
-            },
-            {
-              label: 'معلق',
-              value: stats.pending,
-              icon: Clock,
-              color: 'bg-amber-100 text-amber-700',
-            },
-            {
-              label: 'معتمد',
-              value: stats.approved,
-              icon: CheckCheck,
-              color: 'bg-green-100 text-green-700',
-            },
-            {
-              label: 'مرفوض',
-              value: stats.rejected,
-              icon: XCircle,
-              color: 'bg-red-100 text-red-700',
-            },
-            {
-              label: 'موثق',
-              value: stats.verified,
-              icon: Award,
-              color: 'bg-blue-100 text-blue-700',
-            },
-            {
-              label: 'متميز',
-              value: stats.featured,
-              icon: Sparkles,
-              color: 'bg-amber-100 text-amber-700',
-            },
-            {
-              label: 'زيارات',
-              value: stats.totalViews,
-              icon: Eye,
-              color: 'bg-purple-100 text-purple-700',
-            },
-            {
-              label: 'اتصالات',
-              value: stats.totalPhone,
-              icon: Phone,
-              color: 'bg-indigo-100 text-indigo-700',
-            },
-            {
-              label: 'واتساب',
-              value: stats.totalWhatsApp,
-              icon: MessageCircle,
-              color: 'bg-emerald-100 text-emerald-700',
-            },
-          ].map((s, i) => {
+            { label: 'الكل', value: stats.total, icon: Users, color: 'bg-slate-100 text-slate-700' },
+            { label: 'معلق', value: stats.pending, icon: Clock, color: 'bg-amber-100 text-amber-700' },
+            { label: 'معتمد', value: stats.approved, icon: CheckCheck, color: 'bg-green-100 text-green-700' },
+            { label: 'مرفوض', value: stats.rejected, icon: XCircle, color: 'bg-red-100 text-red-700' },
+            { label: 'موثق', value: stats.verified, icon: Award, color: 'bg-blue-100 text-blue-700' },
+            { label: 'متميز', value: stats.featured, icon: Sparkles, color: 'bg-amber-100 text-amber-700' },
+            { label: 'زيارات', value: stats.totalViews, icon: Eye, color: 'bg-purple-100 text-purple-700' },
+            { label: 'اتصالات', value: stats.totalPhone, icon: Phone, color: 'bg-indigo-100 text-indigo-700' },
+            { label: 'واتساب', value: stats.totalWhatsApp, icon: MessageCircle, color: 'bg-emerald-100 text-emerald-700' },
+          ].map((s) => {
             const Icon = s.icon;
-
             return (
-              <Card
-                key={i}
-                className="rounded-2xl border border-gray-100 bg-white p-4 shadow-sm"
-              >
-                <div className="flex items-center justify-between mb-3">
-                  <div className={`rounded-xl p-2 ${s.color}`}>
-                    <Icon className="w-5 h-5" />
-                  </div>
-                  <span className="text-2xl font-extrabold text-gray-900">
-                    {s.value.toLocaleString('ar-DZ')}
-                  </span>
+              <Card key={s.label} className="rounded-2xl p-4 border-0 shadow-md">
+                <div className={`inline-flex rounded-xl p-2 ${s.color}`}>
+                  <Icon className="w-4 h-4" />
                 </div>
-
-                <div className="text-sm font-bold text-gray-600">{s.label}</div>
+                <div className="mt-3 text-2xl font-extrabold text-gray-900">
+                  {s.value.toLocaleString('ar-DZ')}
+                </div>
+                <div className="text-sm text-gray-600 font-semibold mt-1">{s.label}</div>
               </Card>
             );
           })}
         </div>
 
-        <Card className="p-5 rounded-2xl border border-gray-100 shadow-lg mb-8">
-          <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
+        <Card className="rounded-3xl border-0 shadow-xl p-5 md:p-6">
+          <div className="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
             <div className="flex flex-wrap gap-2">
               {[
                 { value: 'all', label: 'الكل' },
@@ -462,8 +442,8 @@ export default function Admin() {
               ))}
             </div>
 
-            <div className="relative w-full md:max-w-md">
-              <Search className="absolute right-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
+            <div className="relative w-full lg:w-96">
+              <Search className="w-4 h-4 text-gray-400 absolute right-3 top-1/2 -translate-y-1/2" />
               <Input
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
@@ -474,164 +454,174 @@ export default function Admin() {
           </div>
         </Card>
 
-        {loading ? (
-          <div className="flex items-center justify-center py-16">
-            <Loader2 className="w-7 h-7 animate-spin text-[#1f6f50]" />
-            <span className="mr-3 text-gray-500 font-semibold">جاري التحميل...</span>
-          </div>
-        ) : filtered.length > 0 ? (
-          <div className="grid grid-cols-1 lg:grid-cols-2 gap-5">
-            {filtered.map((raqi: any) => (
-              <Card
-                key={raqi.id}
-                className="rounded-2xl border border-gray-100 shadow-md bg-white overflow-hidden"
-              >
-                <div className="p-5 flex flex-col gap-4">
-                  <div className="flex flex-wrap items-start justify-between gap-3">
-                    <div className="flex flex-wrap gap-2">
-                      <span
-                        className={`inline-flex items-center rounded-full px-3 py-1 text-xs font-extrabold ${
-                          raqi.status === 'approved'
-                            ? 'bg-green-100 text-green-700'
+        <div className="space-y-4">
+          {loading ? (
+            <Card className="rounded-3xl p-10 border-0 shadow-md">
+              <div className="flex items-center justify-center gap-3 text-gray-600 font-bold">
+                <Loader2 className="w-6 h-6 animate-spin text-[#1f6f50]" />
+                جاري التحميل...
+              </div>
+            </Card>
+          ) : filtered.length > 0 ? (
+            filtered.map((raqi: any) => (
+              <Card key={raqi.id} className="rounded-3xl border-0 shadow-lg p-5 md:p-6">
+                <div className="flex flex-col gap-5">
+                  <div className="flex flex-col lg:flex-row lg:items-start lg:justify-between gap-4">
+                    <div>
+                      <div className="flex flex-wrap items-center gap-2 mb-3">
+                        <span
+                          className={`inline-flex items-center rounded-full px-3 py-1 text-xs font-extrabold ${
+                            raqi.status === 'approved'
+                              ? 'bg-green-100 text-green-700'
+                              : raqi.status === 'pending'
+                              ? 'bg-amber-100 text-amber-700'
+                              : 'bg-red-100 text-red-700'
+                          }`}
+                        >
+                          {raqi.status === 'approved'
+                            ? 'معتمد'
                             : raqi.status === 'pending'
-                            ? 'bg-amber-100 text-amber-700'
-                            : 'bg-red-100 text-red-700'
-                        }`}
+                            ? 'معلق'
+                            : 'مرفوض'}
+                        </span>
+
+                        {raqi.verified_badge && (
+                          <span className="inline-flex items-center gap-1 rounded-full bg-blue-100 px-3 py-1 text-xs font-extrabold text-blue-700">
+                            <Award className="w-3 h-3" />
+                            موثق
+                          </span>
+                        )}
+
+                        {raqi.featured_badge && (
+                          <span className="inline-flex items-center gap-1 rounded-full bg-amber-100 px-3 py-1 text-xs font-extrabold text-amber-700">
+                            <Sparkles className="w-3 h-3" />
+                            متميز
+                          </span>
+                        )}
+                      </div>
+
+                      <h2 className="text-2xl font-extrabold text-gray-900">{raqi.full_name}</h2>
+
+                      <div className="mt-3 flex flex-wrap gap-4 text-sm text-gray-600">
+                        {raqi.speciality && <span>{raqi.speciality}</span>}
+                        {raqi.wilaya && (
+                          <span className="inline-flex items-center gap-1">
+                            <MapPin className="w-4 h-4 text-[#1f6f50]" />
+                            {getWilayaName(raqi.wilaya)}
+                          </span>
+                        )}
+                        {typeof raqi.experience_years === 'number' && (
+                          <span>{raqi.experience_years} سنة خبرة</span>
+                        )}
+                        {raqi.email && (
+                          <span className="inline-flex items-center gap-1" dir="ltr">
+                            <Mail className="w-4 h-4 text-gray-400" />
+                            {raqi.email}
+                          </span>
+                        )}
+                      </div>
+
+                      {raqi.address && (
+                        <p className="text-gray-500 mt-3">{raqi.address}</p>
+                      )}
+                    </div>
+
+                    <div className="grid grid-cols-3 gap-2 min-w-[220px]">
+                      <div className="rounded-2xl bg-purple-50 p-3 text-center">
+                        <Eye className="w-4 h-4 text-purple-600 mx-auto mb-1" />
+                        <div className="text-lg font-extrabold text-purple-700">
+                          {getLiveValue(raqi, 'view_count').toLocaleString('ar-DZ')}
+                        </div>
+                        <div className="text-xs text-purple-600 font-bold">زيارات</div>
+                      </div>
+                      <div className="rounded-2xl bg-indigo-50 p-3 text-center">
+                        <Phone className="w-4 h-4 text-indigo-600 mx-auto mb-1" />
+                        <div className="text-lg font-extrabold text-indigo-700">
+                          {getLiveValue(raqi, 'phone_click_count').toLocaleString('ar-DZ')}
+                        </div>
+                        <div className="text-xs text-indigo-600 font-bold">اتصالات</div>
+                      </div>
+                      <div className="rounded-2xl bg-emerald-50 p-3 text-center">
+                        <MessageCircle className="w-4 h-4 text-emerald-600 mx-auto mb-1" />
+                        <div className="text-lg font-extrabold text-emerald-700">
+                          {getLiveValue(raqi, 'whatsapp_click_count').toLocaleString('ar-DZ')}
+                        </div>
+                        <div className="text-xs text-emerald-600 font-bold">واتساب</div>
+                      </div>
+                    </div>
+                  </div>
+
+                  <div className="flex flex-wrap gap-2">
+                    {raqi.facebook_url && (
+                      <a
+                        href={raqi.facebook_url}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="inline-flex items-center gap-1 rounded-lg border px-3 py-2 text-sm font-bold text-gray-700 hover:bg-gray-50"
                       >
-                        {raqi.status === 'approved'
-                          ? 'معتمد'
-                          : raqi.status === 'pending'
-                          ? 'معلق'
-                          : 'مرفوض'}
-                      </span>
+                        <Facebook className="w-4 h-4" />
+                        فيسبوك
+                        <ExternalLink className="w-3 h-3" />
+                      </a>
+                    )}
 
-                      {raqi.verified_badge && (
-                        <span className="inline-flex items-center gap-1 bg-blue-50 text-blue-700 border border-blue-200 rounded-full px-3 py-1 text-xs font-extrabold">
-                          <Award className="w-3 h-3" />
-                          موثق
-                        </span>
-                      )}
+                    {raqi.youtube_url && (
+                      <a
+                        href={raqi.youtube_url}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="inline-flex items-center gap-1 rounded-lg border px-3 py-2 text-sm font-bold text-gray-700 hover:bg-gray-50"
+                      >
+                        <Youtube className="w-4 h-4" />
+                        يوتيوب
+                        <ExternalLink className="w-3 h-3" />
+                      </a>
+                    )}
 
-                      {raqi.featured_badge && (
-                        <span className="inline-flex items-center gap-1 bg-amber-50 text-amber-700 border border-amber-200 rounded-full px-3 py-1 text-xs font-extrabold">
-                          <Sparkles className="w-3 h-3" />
-                          متميز
-                        </span>
-                      )}
-                    </div>
+                    {raqi.instagram_url && (
+                      <a
+                        href={raqi.instagram_url}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="inline-flex items-center gap-1 rounded-lg border px-3 py-2 text-sm font-bold text-gray-700 hover:bg-gray-50"
+                      >
+                        <Instagram className="w-4 h-4" />
+                        انستغرام
+                        <ExternalLink className="w-3 h-3" />
+                      </a>
+                    )}
 
-                    <h3 className="text-xl font-extrabold text-gray-900 leading-snug">
-                      {raqi.full_name}
-                    </h3>
+                    {raqi.tiktok_url && (
+                      <a
+                        href={raqi.tiktok_url}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="inline-flex items-center gap-1 rounded-lg border px-3 py-2 text-sm font-bold text-gray-700 hover:bg-gray-50"
+                      >
+                        <Music2 className="w-4 h-4" />
+                        تيك توك
+                        <ExternalLink className="w-3 h-3" />
+                      </a>
+                    )}
                   </div>
 
-                  <div className="space-y-2 text-sm">
-                    {raqi.speciality && (
-                      <div className="text-gray-600 font-medium">
-                        {raqi.speciality}
-                      </div>
-                    )}
-
-                    {raqi.wilaya && (
-                      <div className="flex items-center gap-2 text-gray-600">
-                        <MapPin className="w-4 h-4 text-[#1f6f50] shrink-0" />
-                        <span>{getWilayaName(raqi.wilaya)}</span>
-                      </div>
-                    )}
-
-                    {typeof raqi.experience_years === 'number' && (
-                      <div className="text-gray-500">
-                        {raqi.experience_years} سنة خبرة
-                      </div>
-                    )}
-
-                    {/* === LIENS SOCIAUX === */}
-                    <div className="flex flex-wrap gap-2 pt-1">
-                      {raqi.facebook_url && (
-                        <a
-                          href={raqi.facebook_url}
-                          target="_blank"
-                          rel="noopener noreferrer"
-                          className="inline-flex items-center gap-1 text-xs text-[#1877F2] font-bold bg-blue-50 px-2 py-1 rounded-lg hover:bg-blue-100 transition"
-                          onClick={(e) => e.stopPropagation()}
-                        >
-                          <Facebook className="w-3.5 h-3.5" />
-                          فيسبوك
-                          <ExternalLink className="w-3 h-3" />
-                        </a>
-                      )}
-                      {raqi.youtube_url && (
-                        <a
-                          href={raqi.youtube_url}
-                          target="_blank"
-                          rel="noopener noreferrer"
-                          className="inline-flex items-center gap-1 text-xs text-[#FF0000] font-bold bg-red-50 px-2 py-1 rounded-lg hover:bg-red-100 transition"
-                          onClick={(e) => e.stopPropagation()}
-                        >
-                          <Youtube className="w-3.5 h-3.5" />
-                          يوتيوب
-                          <ExternalLink className="w-3 h-3" />
-                        </a>
-                      )}
-                      {raqi.instagram_url && (
-                        <a
-                          href={raqi.instagram_url}
-                          target="_blank"
-                          rel="noopener noreferrer"
-                          className="inline-flex items-center gap-1 text-xs text-[#E4405F] font-bold bg-pink-50 px-2 py-1 rounded-lg hover:bg-pink-100 transition"
-                          onClick={(e) => e.stopPropagation()}
-                        >
-                          <Instagram className="w-3.5 h-3.5" />
-                          انستغرام
-                          <ExternalLink className="w-3 h-3" />
-                        </a>
-                      )}
-                      {raqi.tiktok_url && (
-                        <a
-                          href={raqi.tiktok_url}
-                          target="_blank"
-                          rel="noopener noreferrer"
-                          className="inline-flex items-center gap-1 text-xs text-gray-800 font-bold bg-gray-100 px-2 py-1 rounded-lg hover:bg-gray-200 transition"
-                          onClick={(e) => e.stopPropagation()}
-                        >
-                          <Music2 className="w-3.5 h-3.5" />
-                          تيك توك
-                          <ExternalLink className="w-3 h-3" />
-                        </a>
-                      )}
-                    </div>
-
-                    {/* === COMPTEURS EN TEMPS RÉEL === */}
-                    <div className="flex gap-3 pt-2 mt-2 border-t border-gray-50">
-                      <div className="flex items-center gap-1 text-xs text-purple-600 font-bold">
-                        <Eye className="w-3.5 h-3.5" />
-                        {getLiveValue(raqi, 'view_count')}
-                      </div>
-                      <div className="flex items-center gap-1 text-xs text-indigo-600 font-bold">
-                        <Phone className="w-3.5 h-3.5" />
-                        {getLiveValue(raqi, 'phone_click_count')}
-                      </div>
-                      <div className="flex items-center gap-1 text-xs text-emerald-600 font-bold">
-                        <MessageCircle className="w-3.5 h-3.5" />
-                        {getLiveValue(raqi, 'whatsapp_click_count')}
-                      </div>
-                    </div>
-                  </div>
-
-                  <div className="flex flex-wrap gap-2 pt-3 border-t border-gray-100">
+                  <div className="flex flex-wrap gap-2 pt-2 border-t border-gray-100">
                     {raqi.status === 'pending' && (
                       <>
                         <Button
                           onClick={() => handleStatus(raqi.id, 'approved')}
                           className="bg-green-600 hover:bg-green-700 text-white rounded-lg h-9"
                         >
+                          <CheckCheck className="w-4 h-4 ml-2" />
                           قبول
                         </Button>
 
                         <Button
                           onClick={() => handleStatus(raqi.id, 'rejected')}
+                          variant="outline"
                           className="border border-red-300 text-red-600 hover:bg-red-50 rounded-lg h-9 bg-white"
                         >
+                          <XCircle className="w-4 h-4 ml-2" />
                           رفض
                         </Button>
                       </>
@@ -640,28 +630,26 @@ export default function Admin() {
                     {raqi.status === 'approved' && (
                       <>
                         <Button
-                          onClick={() =>
-                            handleToggleVerified(raqi.id, !!raqi.verified_badge)
-                          }
+                          onClick={() => handleToggleVerified(raqi.id, !!raqi.verified_badge)}
                           className={
                             raqi.verified_badge
                               ? 'bg-[#d6b14a] hover:bg-[#c4a043] text-white rounded-lg h-9'
                               : 'border border-[#d6b14a] text-[#b8942a] hover:bg-amber-50 rounded-lg h-9 bg-white'
                           }
                         >
+                          <Award className="w-4 h-4 ml-2" />
                           {raqi.verified_badge ? 'إلغاء التوثيق' : 'توثيق'}
                         </Button>
 
                         <Button
-                          onClick={() =>
-                            handleToggleFeatured(raqi.id, !!raqi.featured_badge)
-                          }
+                          onClick={() => handleToggleFeatured(raqi.id, !!raqi.featured_badge)}
                           className={
                             raqi.featured_badge
                               ? 'bg-amber-500 hover:bg-amber-600 text-white rounded-lg h-9'
                               : 'border border-amber-300 text-amber-700 hover:bg-amber-50 rounded-lg h-9 bg-white'
                           }
                         >
+                          <Sparkles className="w-4 h-4 ml-2" />
                           {raqi.featured_badge ? 'إلغاء التمييز' : 'تمييز'}
                         </Button>
                       </>
@@ -669,24 +657,22 @@ export default function Admin() {
 
                     <Button
                       onClick={() => handleDelete(raqi.id)}
+                      variant="outline"
                       className="bg-white text-red-500 border border-red-200 hover:bg-red-50 rounded-lg h-9"
                     >
-                      <Trash2 className="w-4 h-4 ml-1" />
+                      <Trash2 className="w-4 h-4 ml-2" />
                       حذف
                     </Button>
                   </div>
                 </div>
               </Card>
-            ))}
-          </div>
-        ) : (
-          <div className="text-center py-16">
-            <div className="bg-white rounded-2xl border border-dashed border-gray-300 p-10 max-w-md mx-auto">
-              <Search className="w-12 h-12 text-gray-300 mx-auto mb-4" />
-              <p className="text-gray-500 text-lg font-bold">لا توجد نتائج</p>
-            </div>
-          </div>
-        )}
+            ))
+          ) : (
+            <Card className="rounded-3xl p-10 border-0 shadow-md text-center">
+              <p className="text-gray-500 font-bold">لا توجد نتائج</p>
+            </Card>
+          )}
+        </div>
       </div>
     </div>
   );
