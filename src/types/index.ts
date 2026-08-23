@@ -104,6 +104,8 @@ export interface RaqiProduct {
   image_path: string | null;
   is_active: boolean;
   sort_order: number;
+  image_file?: File | null;      
+  remove_image?: boolean;           
   created_at: string;
   updated_at: string;
 }
@@ -118,6 +120,8 @@ export interface RaqiProductInsert {
   image_path?: string | null;
   is_active?: boolean;
   sort_order?: number;
+  image_file?: File | null;      
+  remove_image?: boolean;    
   created_at?: string;
   updated_at?: string;
 }
