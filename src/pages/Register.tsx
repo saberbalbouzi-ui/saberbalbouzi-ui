@@ -12,7 +12,6 @@ import {
   UserPlus,
   Loader2,
   CheckCircle,
-  Mail,
   Lock,
   Globe,
   MapPin,
