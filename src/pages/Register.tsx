@@ -12,9 +12,8 @@ import {
   UserPlus,
   Loader2,
   CheckCircle,
-  Lock,
-  Globe,
-  MapPin,
+ 
+ 
   ImagePlus,
   User,
   AlertCircle,
