@@ -11,6 +11,7 @@ export interface Raqi {
   speciality: string | null;
   phone: string | null;
   whatsapp: string | null;
+  balance_credits: number;
 
   // === IMAGE PROFIL ===
   profile_image_url: string | null;

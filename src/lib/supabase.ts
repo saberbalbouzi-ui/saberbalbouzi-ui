@@ -3,7 +3,7 @@
 // ============================================================
 
 import { createClient } from '@supabase/supabase-js';
-import type { Raqi, Review, Wilaya, RaqiProduct, RaqiProductInsert } from '@/types';
+import type { Raqi, Review, RaqiProduct, RaqiProductInsert } from '@/types';
 
 const SUPABASE_URL =
   import.meta.env.VITE_SUPABASE_URL || 'https://your-project.supabase.co';
@@ -1127,9 +1127,16 @@ export async function incrementWhatsAppClick(slug: string): Promise<void> {
 export type TrackClickResult =
   | { ok: true; newBalance: number }
   | { ok: false; reason: 'insufficient_balance' | 'error' };
+
+   export interface TrackClickResult {
+  success: boolean;
+  new_balance?: number;
+  error?: string;
+}
 export async function trackRaqiClick(
   raqiId: string,
   eventType: 'phone' | 'whatsapp'
+ 
 ): Promise<RaqiClickResult> {
   const { data, error } = await supabase.rpc('track_raqi_click', {
     p_raqi_id: raqiId,

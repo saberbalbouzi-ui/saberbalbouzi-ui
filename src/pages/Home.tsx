@@ -656,7 +656,7 @@ function CTASection() {
             variant="outline"
             className="w-full sm:w-auto min-w-[250px] h-14 border border-white/30 text-white bg-transparent hover:bg-white/10 hover:border-white/50 text-lg font-extrabold rounded-xl transition-all"
           >
-            دخول الراقي
+            حساب الراقي
           </Button>
         </div>
       </div>
