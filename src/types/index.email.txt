@@ -15,7 +15,9 @@ export interface Raqi {
   address: string | null;
   experience_years: number;
   bio: string | null;
+  
   verified_badge: boolean;
+  balance_credits?: number;
   status: 'pending' | 'approved' | 'rejected';
   created_at: string;
   updated_at: string;

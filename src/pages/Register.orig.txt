@@ -188,31 +188,25 @@ export default function Register() {
     });
   };
 
- const handleGoogleRegister = async () => {
-  setSubmittingGoogle(true);
-  setSubmitError('');
-
-  try {
-    const { error } = await supabase.auth.signInWithOAuth({
-      provider: 'google',
-      options: {
-        redirectTo: `${window.location.origin}/auth/callback#/raqi-onboarding`,
-        queryParams: {
-          prompt: 'select_account',
+  const handleGoogleRegister = async () => {
+    setSubmittingGoogle(true);
+    setSubmitError('');
+    try {
+      const { error } = await supabase.auth.signInWithOAuth({
+        provider: 'google',
+        options: {
+          redirectTo: `${window.location.origin}/auth/callback`,
+          queryParams: { prompt: 'select_account' },
         },
-      },
-    });
-
-    if (error) {
-      setSubmitError(error.message || 'تعذر المتابعة باستخدام Google.');
+      });
+      if (error) setSubmitError(error.message);
+    } catch (error) {
+      setSubmitError(getErrorMessage(error));
+    } finally {
+      setSubmittingGoogle(false);
     }
-  } catch (err: any) {
-    console.error('Google register error:', err);
-    setSubmitError(err?.message || 'حدث خطأ أثناء المتابعة باستخدام Google.');
-  } finally {
-    setSubmittingGoogle(false);
-  }
-};
+  };
+
   const handleSubmit = async (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault();
     setSubmitError('');

@@ -118,7 +118,9 @@ const [expandedProductId, setExpandedProductId] = useState<string | null>(null);
       setLoadingLocation(false);
     }
   };
-const handlePhoneClick = async () => {
+
+
+  const handlePhoneClick = async () => {
   
 if (!raqi || !raqi.phone) return;
   const result = await trackRaqiClick(raqi.id, 'phone');
@@ -126,7 +128,6 @@ if (!raqi || !raqi.phone) return;
   if (!result.ok) {
     if (result.reason === 'insufficient_balance') {
       setContactUnavailable(true);
- return;
       // ✅ لا ترجع — دع المستخدم يرى التنبيه ويقرر
     } else {
       return; // أخطاء أخرى فقط
@@ -144,7 +145,6 @@ const handleWhatsAppClick = async () => {
   if (!result.ok) {
     if (result.reason === 'insufficient_balance') {
       setContactUnavailable(true);
- return;
       // ✅ لا ترجع
     } else {
       return;
@@ -182,6 +182,9 @@ const handleWhatsAppClick = async () => {
     </div>
   )}
 </div>
+
+
+
 
 
   const handleSubmitReview = async (e: React.FormEvent) => {

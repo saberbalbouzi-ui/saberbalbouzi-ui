@@ -92,35 +92,6 @@ export interface RaqiInsert {
   updated_at?: string;
 }
 
-export interface RaqiProduct {
-  id: string;
-  raqi_id: string;
-  name: string;
-  description: string | null;
-  price: number | null;
-  currency: 'DZD' | 'MAD' | 'TND' | 'EUR' | 'USD';
-  image_url: string | null;
-  image_path: string | null;
-  is_active: boolean;
-  sort_order: number;
-  created_at: string;
-  updated_at: string;
-}
-
-export interface RaqiProductInsert {
-  raqi_id: string;
-  name: string;
-  description?: string | null;
-  price?: number | null;
-  currency?: 'DZD' | 'MAD' | 'TND' | 'EUR' | 'USD';
-  image_url?: string | null;
-  image_path?: string | null;
-  is_active?: boolean;
-  sort_order?: number;
-  created_at?: string;
-  updated_at?: string;
-}
-
 export interface Review {
   id: string;
   raqi_id: string;
