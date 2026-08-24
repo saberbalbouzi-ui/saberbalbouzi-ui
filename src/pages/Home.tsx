@@ -15,8 +15,7 @@ import type { ElementType } from 'react';
 
 import {
   ArrowLeft,
-  MessageCircle,
-  Mail,
+ 
   Sunrise,
   Sunset,
   Moon,
@@ -667,29 +666,7 @@ function CTASection() {
 
 
 function ContactAdminCTA() {
-  const whatsappMessage = encodeURIComponent(
-    'السلام عليكم، أرغب في الاستفسار عن اشتراكات منصة دليل الرقاة.'
-  );
-
-  const whatsappUrl = `https://wa.me/213555123456?text=${whatsappMessage}`;
-
-  const emailAddress = 'contact.roqat@gmail.com';
-
-  const emailSubject = encodeURIComponent(
-    'استفسار حول اشتراكات منصة دليل الرقاة'
-  );
-
-  const emailBody = encodeURIComponent(
-    'السلام عليكم،\n\n' +
-      'أرغب في الاستفسار عن اشتراكات منصة دليل الرقاة.\n' +
-      'يرجى تزويدي بالتفاصيل المتاحة.\n\n' +
-      'الاسم:\n' +
-      'رقم الهاتف:\n' +
-      'نوع الاستفسار:\n\n' +
-      'وشكرًا لكم.'
-  );
-
-  const emailUrl = `https://mail.google.com/mail/?view=cm&fs=1&to=${emailAddress}&su=${emailSubject}&body=${emailBody}`;
+  
 
  return (
   <section className="relative overflow-hidden bg-[#0a4d2e] py-14 px-4 border-t border-white/10">
