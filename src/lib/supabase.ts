@@ -1133,7 +1133,7 @@ export async function trackRaqiClick(
   raqiId: string,
   eventType: 'phone' | 'whatsapp'
  
-): Promise<RaqiClickResult> {
+): Promise<TrackClickResult> {
   const { data, error } = await supabase.rpc('track_raqi_click', {
     p_raqi_id: raqiId,
     p_event_type: eventType,  // ✅ تأكد من اسم المعامل
