@@ -499,28 +499,34 @@ export default function RaqiDashboard() {
           : 0,
       };
 
-     let saved: RaqiProduct;
-if (editingProductId) {
-  saved = await updateRaqiProduct(editingProductId, {
-    ...payload,
-    image_file: selectedProductImage,
-    remove_image: removeProductImage,
-    currency: payload.currency as 'DZD' | 'MAD' | 'TND' | 'EUR' | 'USD',
-  });
-  setProducts((prev) => prev.map((item) => (item.id === saved.id ? saved : item)));
-  setProductSuccess('تم تحديث المنتج بنجاح');
-} else {
-  saved = await createRaqiProduct({
-    ...payload,
-    image_file: selectedProductImage,
-    // ✅ استخدم profile?.id
-    raqi_id: profile?.id || '',
-    currency: payload.currency as 'DZD' | 'MAD' | 'TND' | 'EUR' | 'USD',
-  });
-  setProducts((prev) => [saved, ...prev]);
-  setProductSuccess('تمت إضافة المنتج بنجاح');
-}
-resetProductForm();
+      let saved: RaqiProduct;
+      if (editingProductId) {
+        saved = await updateRaqiProduct(editingProductId, {
+          ...payload,
+          image_file: selectedProductImage,
+          remove_image: removeProductImage,
+          currency: payload.currency as 'DZD' | 'MAD' | 'TND' | 'EUR' | 'USD',
+        });
+        setProducts((prev) => prev.map((item) => (item.id === saved.id ? saved : item)));
+        setProductSuccess('تم تحديث المنتج بنجاح');
+      } else {
+        saved = await createRaqiProduct({
+          ...payload,
+          image_file: selectedProductImage,
+          raqi_id: profile?.id || '',
+          currency: payload.currency as 'DZD' | 'MAD' | 'TND' | 'EUR' | 'USD',
+        });
+        setProducts((prev) => [saved, ...prev]);
+        setProductSuccess('تمت إضافة المنتج بنجاح');
+      }
+      resetProductForm();
+    } catch (err: any) {
+      console.error('Save product error:', err);
+      setProductError(err?.message || 'حدث خطأ أثناء حفظ المنتج');
+    } finally {
+      setProductSaving(false);
+    }
+  };
 
   const handleSave = async () => {
     if (!form.full_name.trim()) {
@@ -618,32 +624,31 @@ resetProductForm();
     setError('');
     setSuccess('');
 
-    
-     
-    const current = await getCurrentRaqiProfile();
+    try {
+      const current = await getCurrentRaqiProfile();
 
-    if (!current?.id) {
-      throw new Error('لم يتم العثور على ملف الراقي');
+      if (!current?.id) {
+        throw new Error('لم يتم العثور على ملف الراقي');
+      }
+
+      const { error: deleteRaqiError } = await supabase
+        .from('raqis')
+        .delete()
+        .eq('id', current.id);
+
+      if (deleteRaqiError) {
+        throw new Error(deleteRaqiError.message);
+      }
+
+      await signOutRaqi();
+      navigate('/raqi-login', { replace: true });
+    } catch (err: any) {
+      console.error('Delete account error:', err);
+      setError(err?.message || 'حدث خطأ أثناء حذف الحساب');
+    } finally {
+      setDeleting(false);
     }
-
-    const { error: deleteRaqiError } = await supabase
-      .from('raqis')
-      .delete()
-      .eq('id', current.id);
-
-    if (deleteRaqiError) {
-      throw new Error(deleteRaqiError.message);
-    }
-
-    await signOutRaqi();
-    navigate('/raqi-login', { replace: true });
-  } catch (err: any) {
-    console.error('Delete account error:', err);
-    setError(err?.message || 'حدث خطأ أثناء حذف الحساب');
-  } finally {
-    setDeleting(false);
-  }
-};
+  };
 
   const isVerified = profile?.verified_badge ?? false;
   const isFeatured = profile?.featured_badge ?? false;
