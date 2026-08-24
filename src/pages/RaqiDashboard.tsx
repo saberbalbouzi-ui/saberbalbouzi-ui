@@ -502,21 +502,22 @@ if (editingProductId) {
     ...payload,
     image_file: selectedProductImage,
     remove_image: removeProductImage,
-    // ✅ أضف currency مع type assertion
     currency: payload.currency as 'DZD' | 'MAD' | 'TND' | 'EUR' | 'USD',
   });
+  setProducts((prev) => prev.map((item) => (item.id === saved.id ? saved : item)));
+  setProductSuccess('تم تحديث المنتج بنجاح');
+} else {
+  saved = await createRaqiProduct({
+    ...payload,
+    image_file: selectedProductImage,
+    // ✅ أضف raqi_id
+    raqi_id: data.id,  // أو raqiId
+    // ✅ وأصلح currency
+    currency: payload.currency as 'DZD' | 'MAD' | 'TND' | 'EUR' | 'USD',
+  });
+  setProducts((prev) => [saved, ...prev]);
+  setProductSuccess('تمت إضافة المنتج بنجاح');
 }
-        setProducts((prev) => prev.map((item) => (item.id === saved.id ? saved : item)));
-        setProductSuccess('تم تحديث المنتج بنجاح');
-      } else {
-        saved = await createRaqiProduct({
-          ...payload,
-          image_file: selectedProductImage,
-        });
-        setProducts((prev) => [saved, ...prev]);
-        setProductSuccess('تمت إضافة المنتج بنجاح');
-      }
-
       resetProductForm();
     } catch (err: any) {
       console.error('Save product error:', err);
