@@ -496,13 +496,16 @@ export default function RaqiDashboard() {
           : 0,
       };
 
-      let saved: RaqiProduct;
-      if (editingProductId) {
-        saved = await updateRaqiProduct(editingProductId, {
-          ...payload,
-          image_file: selectedProductImage,
-          remove_image: removeProductImage,
-        });
+     let saved: RaqiProduct;
+if (editingProductId) {
+  saved = await updateRaqiProduct(editingProductId, {
+    ...payload,
+    image_file: selectedProductImage,
+    remove_image: removeProductImage,
+    // ✅ أضف currency مع type assertion
+    currency: payload.currency as 'DZD' | 'MAD' | 'TND' | 'EUR' | 'USD',
+  });
+}
         setProducts((prev) => prev.map((item) => (item.id === saved.id ? saved : item)));
         setProductSuccess('تم تحديث المنتج بنجاح');
       } else {

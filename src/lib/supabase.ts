@@ -1165,7 +1165,7 @@ export async function getRaqiStats(id: string): Promise<{
 }> {
   const { data, error } = await supabase
     .from('raqis')
-    .select('view_count, phone_click_count, whatsapp_click_count')
+    .select('view_count, phone_click_count, whatsapp_click_count, balance_credits')
     .eq('id', id)
     .maybeSingle();
 
