@@ -250,7 +250,10 @@ export default function RaqiDashboard() {
 
       try {
         const statsData = await getRaqiStats(data.id);
-        setStats(statsData);
+          setStats({
+    ...statsData,
+    balance_credits: profile?.balance_credits || 0,
+  });
       } catch (err) {
         console.warn('Stats load error:', err);
       }
