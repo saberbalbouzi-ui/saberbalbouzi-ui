@@ -618,7 +618,7 @@ resetProductForm();
     setError('');
     setSuccess('');
 
-    try {
+    
       const current = await getCurrentRaqiProfile();
 
       if (!current?.id) {
@@ -1696,5 +1696,4 @@ resetProductForm();
     </section>
   </div>
 );
-
 }
