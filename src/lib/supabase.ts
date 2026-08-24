@@ -1128,11 +1128,7 @@ export type TrackClickResult =
   | { ok: true; newBalance: number }
   | { ok: false; reason: 'insufficient_balance' | 'error' };
 
-   export interface TrackClickResult {
-  success: boolean;
-  new_balance?: number;
-  error?: string;
-}
+
 export async function trackRaqiClick(
   raqiId: string,
   eventType: 'phone' | 'whatsapp'
