@@ -88,7 +88,7 @@ export default function RaqiDashboard() {
     balance_credits: 0,
   });
 
-  const { view_count, phone_click_count, whatsapp_click_count, balance_credits } =
+  const { view_count, phone_click_count, whatsapp_click_count, } =
     useRealtimeCounters(profile?.id, stats);
 
   const [showDeleteModal, setShowDeleteModal] = useState(false);
