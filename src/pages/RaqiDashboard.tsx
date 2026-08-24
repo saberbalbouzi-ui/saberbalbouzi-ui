@@ -513,22 +513,14 @@ if (editingProductId) {
   saved = await createRaqiProduct({
     ...payload,
     image_file: selectedProductImage,
-    // ✅ أضف raqi_id
-    raqi_id: data.id,  // أو raqiId
-    // ✅ وأصلح currency
+    // ✅ استخدم profile?.id
+    raqi_id: profile?.id || '',
     currency: payload.currency as 'DZD' | 'MAD' | 'TND' | 'EUR' | 'USD',
   });
   setProducts((prev) => [saved, ...prev]);
   setProductSuccess('تمت إضافة المنتج بنجاح');
 }
-      resetProductForm();
-    } catch (err: any) {
-      console.error('Save product error:', err);
-      setProductError(err?.message || 'فشل حفظ المنتج');
-    } finally {
-      setProductSaving(false);
-    }
-  };
+resetProductForm();
 
   const handleSave = async () => {
     if (!form.full_name.trim()) {
