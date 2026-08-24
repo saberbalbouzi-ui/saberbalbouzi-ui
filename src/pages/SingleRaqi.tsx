@@ -75,7 +75,10 @@ const [expandedProductId, setExpandedProductId] = useState<string | null>(null);
         setStats(statsData);
         setProducts(productsData);
 
-        await loadLocationNames(raqiData.country_code, raqiData.wilaya);
+        await loadLocationNames(
+  raqiData.country_code,
+  raqiData.wilaya ?? undefined
+);
       } catch (err) {
         console.error('Load raqi error:', err);
         setError('تعذر تحميل بيانات الراقي');
