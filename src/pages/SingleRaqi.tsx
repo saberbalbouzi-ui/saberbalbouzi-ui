@@ -16,7 +16,7 @@ import {
   getCitiesFromDb,
 } from '@/lib/supabase';
 import type { Raqi, Review, RaqiProduct } from '@/types';
-import { Phone, MessageCircle, MapPin, Star, Award, Eye, Clock, Facebook, Youtube, Instagram, ArrowRight, Loader2, AlertCircle, Send, User, ShoppingBag, Tag, ChevronLeft, ExternalLink, ShieldCheck, Crown, Globe, Building2, Share2, Copy, Check, Twitter, Mail, Linkedin } from 'lucide-react';
+import { Phone, MessageCircle, MapPin, Star, Eye, Clock, Facebook, Youtube, Instagram, ArrowRight, Loader2, AlertCircle, Send, User, ShoppingBag, Tag, ChevronLeft, ExternalLink, ShieldCheck, Crown, Globe, Building2, Share2, Copy, Check, Twitter, Mail, Linkedin } from 'lucide-react';
 
 export default function RaqiSinglePage() {
   const { slug } = useParams<{ slug: string }>();
@@ -75,10 +75,7 @@ const [expandedProductId, setExpandedProductId] = useState<string | null>(null);
         setStats(statsData);
         setProducts(productsData);
 
-       await loadLocationNames(
-  raqiData.country_code ?? undefined,
-  raqiData.wilaya ?? undefined
-)
+        await loadLocationNames(raqiData.country_code, raqiData.wilaya);
       } catch (err) {
         console.error('Load raqi error:', err);
         setError('تعذر تحميل بيانات الراقي');

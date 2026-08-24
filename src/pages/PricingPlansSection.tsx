@@ -5,7 +5,7 @@ import {
   Crown,
   MessageCircle,
   Mail,
-  Sparkles,
+  
   Check,
   ArrowRight,
   Zap,
