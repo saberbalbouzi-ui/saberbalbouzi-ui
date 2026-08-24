@@ -619,30 +619,31 @@ resetProductForm();
     setSuccess('');
 
     
-      const current = await getCurrentRaqiProfile();
+     
+    const current = await getCurrentRaqiProfile();
 
-      if (!current?.id) {
-        throw new Error('لم يتم العثور على ملف الراقي');
-      }
-
-      const { error: deleteRaqiError } = await supabase
-        .from('raqis')
-        .delete()
-        .eq('id', current.id);
-
-      if (deleteRaqiError) {
-        throw new Error(deleteRaqiError.message);
-      }
-
-      await signOutRaqi();
-      navigate('/raqi-login', { replace: true });
-    } catch (err: any) {
-      console.error('Delete account error:', err);
-      setError(err?.message || 'حدث خطأ أثناء حذف الحساب');
-    } finally {
-      setDeleting(false);
+    if (!current?.id) {
+      throw new Error('لم يتم العثور على ملف الراقي');
     }
-  };
+
+    const { error: deleteRaqiError } = await supabase
+      .from('raqis')
+      .delete()
+      .eq('id', current.id);
+
+    if (deleteRaqiError) {
+      throw new Error(deleteRaqiError.message);
+    }
+
+    await signOutRaqi();
+    navigate('/raqi-login', { replace: true });
+  } catch (err: any) {
+    console.error('Delete account error:', err);
+    setError(err?.message || 'حدث خطأ أثناء حذف الحساب');
+  } finally {
+    setDeleting(false);
+  }
+};
 
   const isVerified = profile?.verified_badge ?? false;
   const isFeatured = profile?.featured_badge ?? false;
