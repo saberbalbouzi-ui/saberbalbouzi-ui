@@ -14,7 +14,7 @@ import type { Raqi } from '@/types';
 import type { ElementType } from 'react';
 
 import {
-  ArrowLeft,
+ 
  
   Sunrise,
   Sunset,
@@ -665,56 +665,9 @@ function CTASection() {
 
 
 
-function ContactAdminCTA() {
-  
 
- return (
-  <section className="relative overflow-hidden bg-[#0a4d2e] py-14 px-4 border-t border-white/10">
-    {/* تأثيرات خلفية */}
-    <div className="absolute inset-0 pointer-events-none">
-      <div className="absolute -top-24 right-10 h-64 w-64 rounded-full bg-[#25D366]/10 blur-3xl" />
-      <div className="absolute -bottom-24 left-10 h-64 w-64 rounded-full bg-[#f1d27b]/10 blur-3xl" />
-    </div>
 
-    <div className="relative max-w-4xl mx-auto">
-      <div className="rounded-[2rem] border border-white/15 bg-white/10 p-7 text-center shadow-2xl backdrop-blur-md md:p-10">
-        {/* الشارة */}
-        <div className="mb-5 inline-flex items-center gap-2 rounded-full border border-[#f1d27b]/30 bg-[#f1d27b]/10 px-5 py-2 text-xs font-extrabold text-[#f1d27b]">
-         
-          فرصة مميزة للرقاة
-        </div>
 
-        {/* العنوان */}
-        <h2 className="mb-4 text-3xl font-extrabold leading-tight text-white md:text-4xl">
-          انضم إلى الرقاة المتميزين
-        </h2>
-
-        {/* النص */}
-        <p className="mx-auto mb-8 max-w-2xl text-base leading-8 text-white/75 md:text-lg">
-          طوّر حضورك داخل المنصة، واحصل على ظهور أفضل ومزايا حصرية تساعدك
-          على الوصول إلى المزيد من الزوار وبناء ثقة أكبر مع جمهورك.
-        </p>
-
-        {/* الرابط */}
-        <a
-          href="#/offers"
-          className="group inline-flex min-h-14 items-center justify-center gap-3 rounded-2xl bg-gradient-to-l from-[#f1d27b] to-[#d8aa3e] px-8 text-base font-extrabold text-[#163a2b] shadow-xl transition-all duration-300 hover:-translate-y-1 hover:shadow-2xl hover:brightness-105"
-          aria-label="الانتقال إلى صفحة الاشتراكات والعروض"
-        >
-          
-          اكتشف عروض الاشتراك
-          <ArrowLeft className="h-5 w-5 transition-transform duration-300 group-hover:-translate-x-1" />
-        </a>
-
-        {/* نص أسفل الرابط */}
-        <p className="mt-5 text-sm text-white/50">
-          اختر الباقة المناسبة وابدأ بتطوير حسابك اليوم
-        </p>
-      </div>
-    </div>
-  </section>
-);
-}
 function Footer() {
   return (
     <footer className="bg-[#083d24] py-8 px-4 border-t border-white/5">
@@ -740,7 +693,7 @@ export default function Home() {
       <FeaturedRaqisSection />
       <SearchSection />
       <CTASection />
-      <ContactAdminCTA />
+      
       <Footer />
     </div>
   );
